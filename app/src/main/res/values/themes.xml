@@ -4,6 +4,7 @@
         <!-- Customize your light theme here. -->
         <item name="android:windowBackground">@color/colorBackground</item>
         <item name="android:textColor">@color/colorWhite</item>
+        <item name="android:fontFamily">@font/inter</item>
         <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
     </style>
 
