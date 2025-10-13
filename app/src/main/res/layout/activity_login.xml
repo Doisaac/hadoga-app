@@ -45,11 +45,11 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
                 android:layout_marginBottom="35dp"
+                android:text="@string/login_subtitle"
+                android:textAlignment="viewStart"
                 android:textColor="@color/colorWhite"
                 android:textSize="14sp"
-                android:textStyle="normal"
-                android:text="@string/login_subtitle"
-                android:textAlignment="viewStart" />
+                android:textStyle="normal" />
 
             <!-- Campo Email -->
             <TextView
