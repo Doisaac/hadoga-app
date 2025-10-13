@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Hadoga</string>
+    <string name="login_subtitle">Inicia sesión con tu cuenta de <font color="#FFFFFF"><b>HADOGA</b></font></string>
 </resources>
