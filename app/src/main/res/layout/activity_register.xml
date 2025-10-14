@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/colorBackground"
+    android:fitsSystemWindows="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingHorizontal="24dp"
+        android:paddingTop="20dp">
+
+        <!-- Flecha de retroceso -->
+        <ImageButton
+            android:id="@+id/btnBack"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@android:color/transparent"
+            android:contentDescription="Regresar"
+            android:src="@drawable/ic_arrow_back"
+            android:tint="@color/colorWhite" />
+
+        <!-- Título -->
+        <TextView
+            android:id="@+id/titleRegister"
+            style="@style/TitleText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="Registro" />
+
+        <!-- Subtítulo -->
+        <TextView
+            android:id="@+id/subtitleRegister"
+            style="@style/SubtitleText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="35dp"
+            android:text="Completa los siguientes campos" />
+
+        <!-- Campo Nombre de clínica -->
+        <TextView
+            style="@style/FieldTitleText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="6dp"
+            android:text="Nombre de clínica" />
+
+        <EditText
+            android:id="@+id/inputClinicName"
+            style="@style/HadogaEditText"
+            android:layout_marginBottom="16dp"
+            android:hint="HADOGA Santa Ana" />
+
+        <!-- Campo Email -->
+        <TextView
+            style="@style/FieldTitleText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="6dp"
+            android:text="Email" />
+
+        <EditText
+            android:id="@+id/inputEmail"
+            style="@style/HadogaEditText"
+            android:layout_marginBottom="16dp"
+            android:hint="hadogasantana@gmail.com"
+            android:inputType="textEmailAddress" />
+
+        <!-- Campo Contraseña -->
+        <TextView
+            style="@style/FieldTitleText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="6dp"
+            android:text="Contraseña" />
+
+        <EditText
+            android:id="@+id/inputPassword"
+            style="@style/HadogaEditText"
+            android:layout_marginBottom="16dp"
+            android:hint="Introduce tu contraseña"
+            android:inputType="textPassword" />
+
+        <!-- Campo Confirmar contraseña -->
+        <TextView
+            style="@style/FieldTitleText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="6dp"
+            android:text="Confirma la contraseña" />
+
+        <EditText
+            android:id="@+id/inputConfirmPassword"
+            style="@style/HadogaEditText"
+            android:layout_marginBottom="32dp"
+            android:hint="Repite tu contraseña"
+            android:inputType="textPassword" />
+
+        <!-- Botón principal -->
+        <Button
+            android:id="@+id/btnCreateAccount"
+            style="@style/HadogaPrimaryButton"
+            android:layout_marginBottom="24dp"
+            android:text="Crear Cuenta" />
+
+        <!-- Texto inferior -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="32dp"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <TextView
+                style="@style/SmallText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="¿Ya tienes cuenta? "
+                android:textColor="@color/colorWhite" />
+
+            <TextView
+                android:id="@+id/textGoLogin"
+                style="@style/SmallText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:clickable="true"
+                android:focusable="true"
+                android:fontFamily="@font/inter_semibold"
+                android:text="Inicia sesión"
+                android:textColor="@color/colorWhite"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>
