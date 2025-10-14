@@ -31,6 +31,9 @@ android {
     }
 }
 
+// Versión de ROOM que utilizaremos
+val roomVersion = "2.6.1"
+
 dependencies {
 
     implementation(libs.appcompat)
@@ -40,4 +43,8 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
+
+    // Room
+    implementation("androidx.room:room-runtime:$roomVersion")
+    annotationProcessor("androidx.room:room-compiler:$roomVersion")
 }
