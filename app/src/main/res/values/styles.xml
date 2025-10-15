@@ -82,4 +82,15 @@
         <item name="android:fontFamily">@font/inter_semibold</item>
     </style>
 
+    <!-- Campo de texto reutilizable para fragments -->
+    <style name="HadogaFieldEditText">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:background">@drawable/edittext_field_background</item>
+        <item name="android:textColor">@color/colorWhite</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:textColorHint">@color/colorGrayText</item>
+        <item name="android:padding">15dp</item>
+    </style>
+
 </resources>

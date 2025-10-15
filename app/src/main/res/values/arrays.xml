@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="departamentos">
+        <item>San Salvador</item>
+        <item>Santa Ana</item>
+        <item>San Miguel</item>
+        <item>La Libertad</item>
+        <item>Usulután</item>
+        <item>Sonsonate</item>
+        <item>Chalatenango</item>
+        <item>La Paz</item>
+        <item>Ahuachapán</item>
+        <item>La Unión</item>
+        <item>Cabañas</item>
+        <item>Morazán</item>
+    </string-array>
+</resources>
