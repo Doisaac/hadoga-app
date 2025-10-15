@@ -1,16 +1,298 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:gravity="center"
     android:background="@color/colorBackground">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Bienvenido a HADOGA 🦷"
-        android:textColor="@color/colorWhite"
-        android:textSize="22sp"
-        android:textStyle="bold" />
-</LinearLayout>
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <!-- Fondo azul -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="280dp"
+            android:background="@drawable/bg_dashboard_header" />
+
+        <!-- Contenido: texto y cards -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="44dp"
+            android:paddingTop="72dp">
+
+            <!-- Texto saludo -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="40dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Hola 👋 Clínica"
+                    android:textColor="@android:color/white"
+                    android:textSize="35sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="HADOGA Santa Ana"
+                    android:textColor="@android:color/white"
+                    android:textSize="30sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Primera fila -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:orientation="horizontal"
+                android:translationY="0dp"
+                android:weightSum="2">
+
+                <LinearLayout
+                    style="@style/HadogaCardButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:layout_weight="1">
+
+                    <ImageView
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:background="@drawable/bg_icon_circle"
+                        android:padding="12dp"
+                        android:src="@drawable/ic_add"
+                        android:tint="#000000" />
+
+                    <TextView
+                        style="@style/HadogaCardText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Agregar Paciente" />
+                </LinearLayout>
+
+                <LinearLayout
+                    style="@style/HadogaCardButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="1">
+
+                    <ImageView
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:background="@drawable/bg_icon_circle"
+                        android:padding="12dp"
+                        android:src="@drawable/ic_folder"
+                        android:tint="#000000" />
+
+                    <TextView
+                        style="@style/HadogaCardText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Ver Pacientes" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Segunda Fila -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="25dp"
+                android:gravity="center"
+                android:orientation="horizontal"
+                android:translationY="0dp"
+                android:weightSum="2">
+
+                <LinearLayout
+                    style="@style/HadogaCardButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:layout_weight="1">
+
+                    <ImageView
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:background="@drawable/bg_icon_circle"
+                        android:padding="12dp"
+                        android:src="@drawable/ic_add"
+                        android:tint="#000000" />
+
+                    <TextView
+                        style="@style/HadogaCardText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Agregar Cita" />
+                </LinearLayout>
+
+                <LinearLayout
+                    style="@style/HadogaCardButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="1">
+
+                    <ImageView
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:background="@drawable/bg_icon_circle"
+                        android:padding="12dp"
+                        android:src="@drawable/ic_folder"
+                        android:tint="#000000" />
+
+                    <TextView
+                        style="@style/HadogaCardText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Ver Citas" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Tercera Fila -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="90dp"
+                android:gravity="center"
+                android:orientation="horizontal"
+                android:translationY="0dp"
+                android:weightSum="2">
+
+                <LinearLayout
+                    style="@style/HadogaCardButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:layout_weight="1">
+
+                    <ImageView
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:background="@drawable/bg_icon_circle"
+                        android:padding="12dp"
+                        android:src="@drawable/ic_add"
+                        android:tint="#000000" />
+
+                    <TextView
+                        style="@style/HadogaCardText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Agregar Doctor" />
+                </LinearLayout>
+
+                <LinearLayout
+                    style="@style/HadogaCardButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="1">
+
+                    <ImageView
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:background="@drawable/bg_icon_circle"
+                        android:padding="12dp"
+                        android:src="@drawable/ic_folder"
+                        android:tint="#000000" />
+
+                    <TextView
+                        style="@style/HadogaCardText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Ver Doctores" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Cuarta fila -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="25dp"
+                android:gravity="center"
+                android:orientation="horizontal">
+
+                <LinearLayout
+                    style="@style/HadogaCardButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical|center_horizontal"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="24dp"
+                    android:paddingVertical="12dp">
+
+                    <ImageView
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:background="@drawable/bg_icon_circle"
+                        android:padding="12dp"
+                        android:src="@drawable/ic_add"
+                        android:tint="#000000" />
+
+                    <TextView
+                        style="@style/HadogaCardText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:text="Agregar Sucursal" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Quinta fila -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="25dp"
+                android:gravity="center"
+                android:orientation="horizontal">
+
+                <LinearLayout
+                    style="@style/HadogaCardButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical|center_horizontal"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="24dp"
+                    android:paddingVertical="12dp">
+
+                    <ImageView
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:background="@drawable/bg_icon_circle"
+                        android:padding="12dp"
+                        android:src="@drawable/ic_folder"
+                        android:tint="#000000" />
+
+                    <TextView
+                        style="@style/HadogaCardText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:text="Ver Sucursales" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Botón de Cerrar Sesión -->
+            <android.widget.Button
+                android:id="@+id/btnCerrarSesion"
+                style="@style/HadogaButtonLogout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="25dp"
+                android:text="Cerrar Sesión" />
+
+        </LinearLayout>
+    </FrameLayout>
+</ScrollView>
