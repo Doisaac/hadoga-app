@@ -8,8 +8,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        >
+        android:orientation="vertical">
 
         <!-- Título -->
         <TextView
@@ -17,8 +16,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            android:text="Nueva Sucursal"
-            android:paddingTop="72dp"/>
+            android:paddingTop="72dp"
+            android:text="Nueva Sucursal" />
 
         <!-- Card -->
         <LinearLayout
@@ -49,14 +48,50 @@
                 android:layout_marginBottom="15dp"
                 android:hint="Código de sucursal" />
 
-            <Spinner
-                android:id="@+id/spDepartamento"
+            <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="15dp"
-                android:background="@drawable/edittext_field_background"
-                android:popupBackground="@color/colorBackground"
-                android:spinnerMode="dropdown" />
+                android:foregroundGravity="center_vertical">
+
+                <!-- Fondo con borde -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:background="@drawable/edittext_field_background" />
+
+                <!-- Ícono al inicio -->
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_gravity="start|center_vertical"
+                    android:layout_marginStart="16dp"
+                    android:src="@drawable/ic_edit"
+                    android:tint="@color/colorPurple" />
+
+                <!-- Spinner real -->
+                <Spinner
+                    android:id="@+id/spDepartamento"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="40dp"
+                    android:layout_marginEnd="36dp"
+                    android:dropDownVerticalOffset="8dp"
+                    android:gravity="center_vertical"
+                    android:paddingVertical="8dp"
+                    android:popupBackground="@color/colorBackground"
+                    android:spinnerMode="dropdown" />
+
+                <!-- Flechita al final -->
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_gravity="end|center_vertical"
+                    android:layout_marginEnd="16dp"
+                    android:src="@drawable/ic_arrow_down"
+                    android:tint="@color/colorPurple" />
+            </FrameLayout>
+
 
             <EditText
                 android:id="@+id/etDireccion"
