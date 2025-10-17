@@ -16,7 +16,213 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            android:text="Nuevo Doctor"
-            android:paddingTop="72dp"/>
+            android:paddingTop="72dp"
+            android:text="Nuevo Doctor" />
+
+        <!-- Card: Foto -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:background="@drawable/bg_card_button"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="20dp"
+            android:paddingVertical="16dp">
+
+            <!-- Imagen circular -->
+            <ImageView
+                android:id="@+id/ivFotoDoctor"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:background="@drawable/bg_circle_photo"
+                android:clipToOutline="true"
+                android:scaleType="centerCrop"
+                android:src="@drawable/ic_user_placeholder" />
+
+            <!-- Separador -->
+            <View
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <!-- Botón seleccionar foto -->
+            <android.widget.Button
+                android:id="@+id/btnSeleccionarFoto"
+                style="@style/HadogaMiniButtonBlue"
+                android:layout_width="wrap_content"
+                android:layout_height="33dp"
+                android:background="@drawable/bg_button_blue"
+                android:text="Seleccionar Foto" />
+        </LinearLayout>
+
+        <!-- Card: Datos personales -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:background="@drawable/bg_card_button"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <TextView
+                style="@style/FieldTitleText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:text="Datos personales"
+                android:textColor="@android:color/black" />
+
+            <EditText
+                android:id="@+id/etNombre"
+                style="@style/HadogaFieldEditText"
+                android:layout_marginBottom="15dp"
+                android:hint="Nombre" />
+
+            <EditText
+                android:id="@+id/etApellido"
+                style="@style/HadogaFieldEditText"
+                android:layout_marginBottom="15dp"
+                android:hint="Apellido" />
+
+            <EditText
+                android:id="@+id/etFechaNacimiento"
+                style="@style/HadogaFieldEditText"
+                android:layout_marginBottom="15dp"
+                android:hint="Fecha de Nacimiento" />
+
+            <EditText
+                android:id="@+id/etColegiado"
+                style="@style/HadogaFieldEditText"
+                android:layout_marginBottom="15dp"
+                android:hint="N° de colegiado médico" />
+
+            <TextView
+                style="@style/FieldTitleText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:text="Género"
+                android:textColor="@android:color/black" />
+
+            <RadioGroup
+                android:id="@+id/rgGenero"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <RadioButton
+                    android:id="@+id/rbMasculino"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Masculino" />
+
+                <RadioButton
+                    android:id="@+id/rbFemenino"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="32dp"
+                    android:text="Femenino" />
+            </RadioGroup>
+        </LinearLayout>
+
+        <!-- Card: Información -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:background="@drawable/bg_card_button"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <TextView
+                style="@style/FieldTitleText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:text="Información"
+                android:textColor="@android:color/black" />
+
+            <!-- Spinner Especialidad -->
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="15dp">
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:background="@drawable/spinner_azul_background" />
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_gravity="start|center_vertical"
+                    android:layout_marginStart="16dp"
+                    android:src="@drawable/ic_edit"
+                    android:tint="#000000" />
+
+                <Spinner
+                    android:id="@+id/spEspecialidad"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="40dp"
+                    android:layout_marginEnd="36dp"
+                    android:gravity="center_vertical"
+                    android:popupBackground="@color/colorBackground"
+                    android:spinnerMode="dropdown" />
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_gravity="end|center_vertical"
+                    android:layout_marginEnd="16dp"
+                    android:src="@drawable/ic_arrow_down"
+                    android:tint="#000000" />
+            </FrameLayout>
+
+            <!-- Spinner Sucursal -->
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:background="@drawable/spinner_rosado_backgrouond" />
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_gravity="start|center_vertical"
+                    android:layout_marginStart="16dp"
+                    android:src="@drawable/ic_location"
+                    android:tint="#000000" />
+
+                <Spinner
+                    android:id="@+id/spSucursal"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="40dp"
+                    android:layout_marginEnd="36dp"
+                    android:gravity="center_vertical"
+                    android:popupBackground="@color/colorBackground"
+                    android:spinnerMode="dropdown" />
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_gravity="end|center_vertical"
+                    android:layout_marginEnd="16dp"
+                    android:src="@drawable/ic_arrow_down"
+                    android:tint="#000000" />
+            </FrameLayout>
+        </LinearLayout>
+
+        <!-- Botón principal -->
+        <Button
+            android:id="@+id/btnGuardarDoctor"
+            style="@style/HadogaPrimaryButton"
+            android:text="Guardar Doctor" />
     </LinearLayout>
 </ScrollView>
