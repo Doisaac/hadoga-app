@@ -5,11 +5,13 @@ import androidx.room.Entity;
 import androidx.room.Index;
 import androidx.room.PrimaryKey;
 
+import java.io.Serializable;
+
 @Entity(
         tableName = "sucursal",
         indices = {@Index(value = "codigo_sucursal", unique = true)}
 )
-public class Sucursal {
+public class Sucursal implements Serializable {
     @PrimaryKey(autoGenerate = true)
     private int id;
 
@@ -44,7 +46,6 @@ public class Sucursal {
         this.telefono = telefono;
         this.correo = correo;
     }
-
 
 
     // Getters y Setters

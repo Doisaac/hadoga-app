@@ -16,7 +16,17 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            android:text="Lista de Sucursales"
-            android:paddingTop="72dp"/>
+            android:paddingTop="72dp"
+            android:text="Lista de Sucursales" />
+
+        <!-- Contenedor de las cards -->
+        <LinearLayout
+            android:id="@+id/containerSucursales"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:divider="@android:color/transparent"
+            android:dividerPadding="25dp"
+            android:orientation="vertical"
+            android:showDividers="middle" />
     </LinearLayout>
 </ScrollView>
