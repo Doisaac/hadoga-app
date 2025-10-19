@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
-        android:id="@+id/nav_dashboard"
+        android:id="@+id/menu_dashboard"
         android:icon="@drawable/ic_home"
         android:title="Inicio" />
 
     <item
-        android:id="@+id/nav_citas"
+        android:id="@+id/menu_citas"
         android:icon="@drawable/ic_calendar"
         android:title="Citas" />
 
     <item
-        android:id="@+id/nav_expedientes"
+        android:id="@+id/menu_expedientes"
         android:icon="@drawable/ic_folder"
         android:title="Expedientes" />
 </menu>

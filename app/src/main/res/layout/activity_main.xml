@@ -18,8 +18,10 @@
         android:id="@+id/bottomNavigationView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/colorBackground"
-        app:itemIconTint="@color/colorWhite"
-        app:itemTextColor="@color/colorWhite"
-        app:menu="@menu/bottom_nav_menu" />
+        android:elevation="8dp"
+        android:background="@drawable/bg_bottom_nav"
+    app:itemIconTint="@color/nav_item_selector"
+    app:itemTextColor="@color/nav_item_selector"
+    app:itemBackground="@drawable/bg_nav_item"
+    app:menu="@menu/bottom_nav_menu" />
 </LinearLayout>

@@ -5,8 +5,9 @@
     android:id="@+id/bottomNavigationView"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@color/colorWhite"
+    android:elevation="8dp"
+    android:background="@drawable/bg_bottom_nav"
+    app:menu="@menu/bottom_nav_menu"
     app:itemIconTint="@color/nav_item_selector"
     app:itemTextColor="@color/nav_item_selector"
-    app:menu="@menu/bottom_nav_menu"
-    app:itemBackground="@drawable/bg_nav_item"/>
+    app:itemBackground="@drawable/bg_nav_item" />
