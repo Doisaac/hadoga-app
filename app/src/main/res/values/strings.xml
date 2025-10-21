@@ -1,4 +1,17 @@
 <resources>
     <string name="app_name">Hadoga</string>
     <string name="login_subtitle">Inicia sesión con tu cuenta de <font color="#FFFFFF"><b>HADOGA</b></font></string>
+
+    <string-array name="especialidades">
+        <item>Odontología General</item>
+        <item>Ortodoncia</item>
+        <item>Endodoncia</item>
+        <item>Periodoncia</item>
+        <item>Implantología</item>
+        <item>Cirugía Oral y Maxilofacial</item>
+        <item>Odontopediatría</item>
+        <item>Estética Dental</item>
+        <item>Prostodoncia</item>
+        <item>Radiología Dental</item>
+    </string-array>
 </resources>
