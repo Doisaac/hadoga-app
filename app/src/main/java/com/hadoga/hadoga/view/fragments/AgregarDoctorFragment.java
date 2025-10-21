@@ -27,7 +27,13 @@ import androidx.fragment.app.Fragment;
 import com.hadoga.hadoga.R;
 import com.hadoga.hadoga.model.database.HadogaDatabase;
 import com.hadoga.hadoga.model.entities.Doctor;
+import com.hadoga.hadoga.model.entities.Sucursal;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.List;
 import java.util.concurrent.Executors;
 
 public class AgregarDoctorFragment extends Fragment {
@@ -49,7 +55,121 @@ public class AgregarDoctorFragment extends Fragment {
         initUI(view);
         initListeners(view);
 
+        // en caso sea modo edición
+        if (getArguments() != null && getArguments().containsKey("doctorData")) {
+            Doctor doctor = (Doctor) getArguments().getSerializable("doctorData");
+            cargarDatosDoctor(view, doctor);
+        }
+
         return view;
+    }
+
+    private void cargarDatosDoctor(View view, Doctor d) {
+        etNombre.setText(d.getNombre());
+        etApellido.setText(d.getApellido());
+        etFechaNacimiento.setText(d.getFechaNacimiento());
+        etColegiado.setText(d.getNumeroColegiado());
+
+        // Género
+        if (d.getSexo().equalsIgnoreCase("masculino")) {
+            rgGenero.check(R.id.rbMasculino);
+        } else if (d.getSexo().equalsIgnoreCase("femenino")) {
+            rgGenero.check(R.id.rbFemenino);
+        }
+
+        // Imagen (si hay URI)
+        if (d.getFotoUri() != null && !d.getFotoUri().isEmpty()) {
+            fotoSeleccionadaUri = Uri.parse(d.getFotoUri());
+            ivFotoDoctor.setImageURI(fotoSeleccionadaUri);
+        } else {
+            ivFotoDoctor.setImageResource(R.drawable.ic_user_placeholder);
+        }
+
+        // Spinner de especialidad
+        ArrayAdapter<CharSequence> adapterEsp = (ArrayAdapter<CharSequence>) spEspecialidad.getAdapter();
+        if (adapterEsp != null) {
+            int posEsp = adapterEsp.getPosition(d.getEspecialidad());
+            if (posEsp >= 0) spEspecialidad.setSelection(posEsp);
+        }
+
+        // Spinner de sucursal, ojo cargar después de obtener de la BD
+        Executors.newSingleThreadExecutor().execute(() -> {
+            List<Sucursal> listaSucursales = db.sucursalDao().getAllSucursales();
+            requireActivity().runOnUiThread(() -> {
+                ArrayAdapter<String> adapterSucursal = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item);
+                adapterSucursal.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+
+                int posSeleccionada = -1;
+                for (int i = 0; i < listaSucursales.size(); i++) {
+                    Sucursal s = listaSucursales.get(i);
+                    adapterSucursal.add(s.getNombreSucursal());
+                    if (s.getId() == d.getSucursalAsignada()) posSeleccionada = i;
+                }
+
+                spSucursal.setAdapter(adapterSucursal);
+                if (posSeleccionada >= 0) spSucursal.setSelection(posSeleccionada);
+            });
+        });
+
+        // Cambiar texto del botón
+        Button btnGuardar = view.findViewById(R.id.btnGuardarDoctor);
+        btnGuardar.setText("Actualizar Doctor");
+
+        // Acción del botón
+        btnGuardar.setOnClickListener(v -> actualizarDoctor(d.getId()));
+    }
+
+    private void actualizarDoctor(int idDoctor) {
+        String nombre = etNombre.getText().toString().trim();
+        String apellido = etApellido.getText().toString().trim();
+        String fechaNac = etFechaNacimiento.getText().toString().trim();
+        String colegiado = etColegiado.getText().toString().trim();
+        String especialidad = spEspecialidad.getSelectedItem() != null ? spEspecialidad.getSelectedItem().toString() : "";
+        String sucursalNombre = spSucursal.getSelectedItem() != null ? spSucursal.getSelectedItem().toString() : "";
+        int generoId = rgGenero.getCheckedRadioButtonId();
+
+        if (TextUtils.isEmpty(nombre) || TextUtils.isEmpty(apellido) || TextUtils.isEmpty(colegiado)) {
+            Toast.makeText(requireContext(), "Completa todos los campos obligatorios", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (generoId == -1) {
+            Toast.makeText(requireContext(), "Selecciona un género", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        RadioButton rbGenero = requireView().findViewById(generoId);
+        String genero = rbGenero.getText().toString().toLowerCase();
+
+        Executors.newSingleThreadExecutor().execute(() -> {
+            List<Sucursal> listaSucursales = db.sucursalDao().getAllSucursales();
+            int idSucursalSeleccionada = -1;
+            for (Sucursal s : listaSucursales) {
+                if (s.getNombreSucursal().equals(sucursalNombre)) {
+                    idSucursalSeleccionada = s.getId();
+                    break;
+                }
+            }
+
+            if (idSucursalSeleccionada == -1) {
+                requireActivity().runOnUiThread(() -> Toast.makeText(requireContext(), "Sucursal no encontrada", Toast.LENGTH_SHORT).show());
+                return;
+            }
+
+            // Crear objeto actualizado
+            Doctor actualizado = new Doctor(nombre, apellido, fechaNac, colegiado, genero, especialidad, idSucursalSeleccionada, fotoSeleccionadaUri != null ? fotoSeleccionadaUri.toString() : null);
+            actualizado.setId(idDoctor);
+
+            try {
+                db.doctorDao().actualizar(actualizado);
+                requireActivity().runOnUiThread(() -> {
+                    Toast.makeText(requireContext(), "Doctor actualizado exitosamente", Toast.LENGTH_SHORT).show();
+                    requireActivity().getSupportFragmentManager().popBackStack();
+                });
+            } catch (Exception e) {
+                requireActivity().runOnUiThread(() -> Toast.makeText(requireContext(), "Error al actualizar", Toast.LENGTH_SHORT).show());
+            }
+        });
     }
 
     private void initUI(View view) {
@@ -87,7 +207,11 @@ public class AgregarDoctorFragment extends Fragment {
     }
 
     private void abrirGaleria() {
-        Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("image/*");
+        intent.addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         seleccionarImagenLauncher.launch(intent);
     }
 
@@ -95,8 +219,27 @@ public class AgregarDoctorFragment extends Fragment {
         if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
             Uri uri = result.getData().getData();
             if (uri != null) {
-                fotoSeleccionadaUri = uri;
-                ivFotoDoctor.setImageURI(uri);
+                // Permitir acceso persistente
+                requireContext().getContentResolver().takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+                try (InputStream inputStream = requireContext().getContentResolver().openInputStream(uri)) {
+                    File file = new File(requireContext().getFilesDir(), "doctor_" + System.currentTimeMillis() + ".jpg");
+                    try (OutputStream outputStream = new FileOutputStream(file)) {
+                        byte[] buffer = new byte[1024];
+                        int length;
+                        while ((length = inputStream.read(buffer)) > 0) {
+                            outputStream.write(buffer, 0, length);
+                        }
+                    }
+
+                    // Guardar ruta local y mostrar imagen
+                    fotoSeleccionadaUri = Uri.fromFile(file);
+                    ivFotoDoctor.setImageURI(fotoSeleccionadaUri);
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    Toast.makeText(requireContext(), "Error al cargar la imagen", Toast.LENGTH_SHORT).show();
+                }
             }
         }
     });

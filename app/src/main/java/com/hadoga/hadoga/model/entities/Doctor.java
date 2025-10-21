@@ -6,6 +6,8 @@ import androidx.room.ForeignKey;
 import androidx.room.Index;
 import androidx.room.PrimaryKey;
 
+import java.io.Serializable;
+
 @Entity(
         tableName = "doctor",
         foreignKeys = @ForeignKey(
@@ -19,7 +21,7 @@ import androidx.room.PrimaryKey;
                 @Index(value = "sucursal_asignada")
         }
 )
-public class Doctor {
+public class Doctor implements Serializable {
     @PrimaryKey(autoGenerate = true)
     private int id;
 
