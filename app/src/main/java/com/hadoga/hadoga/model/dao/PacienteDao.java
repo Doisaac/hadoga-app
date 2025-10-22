@@ -26,4 +26,7 @@ public interface PacienteDao {
 
     @Query("DELETE FROM paciente")
     void eliminarTodos();
+
+    @Query("SELECT * FROM paciente WHERE sucursal_id = :sucursalId ORDER BY id DESC")
+    List<Paciente> obtenerPorSucursal(int sucursalId);
 }
