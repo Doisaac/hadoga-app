@@ -68,7 +68,7 @@ public class RegisterActivity extends AppCompatActivity {
         String password = inputPassword.getText().toString().trim();
         String confirmPassword = inputConfirmPassword.getText().toString().trim();
 
-        // 🔹 Validaciones
+        // Validaciones
         if (TextUtils.isEmpty(nombre) || nombre.length() < 3) {
             inputNombreClinica.setError("Debe tener al menos 3 caracteres");
             return;
@@ -89,19 +89,19 @@ public class RegisterActivity extends AppCompatActivity {
             return;
         }
 
-        // 🔹 Validar si ya existe el email
+        // Validar si ya existe el email
         if (db.usuarioDao().login(email, password) != null) {
             inputEmail.setError("Este correo ya está registrado");
             return;
         }
 
-        // 🔹 Insertar usuario
+        // Insertar usuario
         Usuario nuevo = new Usuario(nombre, email, password);
         db.usuarioDao().insert(nuevo);
 
         Toast.makeText(this, "Usuario registrado correctamente", Toast.LENGTH_SHORT).show();
 
-        // 🔹 Volver al login
+        // Volver al login
         Intent intent = new Intent(RegisterActivity.this, LoginActivity.class);
         startActivity(intent);
         finish();
