@@ -1,21 +1,371 @@
 package com.hadoga.hadoga.view.fragments;
 
+import android.app.DatePickerDialog;
+import android.app.TimePickerDialog;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.Spinner;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import com.hadoga.hadoga.R;
+import com.hadoga.hadoga.model.database.HadogaDatabase;
+import com.hadoga.hadoga.model.entities.Cita;
+import com.hadoga.hadoga.model.entities.Paciente;
+import com.hadoga.hadoga.model.entities.Sucursal;
+
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.Executors;
 
 public class NuevaCitaFragment extends Fragment {
+    private HadogaDatabase db;
+    private Spinner spSucursal, spPaciente, spEstado;
+    private EditText etFechaHora, etMotivo, etNotas;
+    private Button btnCrearCita;
+
+    private List<Sucursal> sucursales = new ArrayList<>();
+    private List<Paciente> pacientes = new ArrayList<>();
+
+    private final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US);
+
     @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
-                             @Nullable Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_nueva_cita, container, false);
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        db = HadogaDatabase.getInstance(requireContext());
+        View view = inflater.inflate(R.layout.fragment_nueva_cita, container, false);
+
+        initUI(view);
+        initListeners();
+
+        // Modo edición
+        if (getArguments() != null && getArguments().containsKey("citaData")) {
+            Cita cita = (Cita) getArguments().getSerializable("citaData");
+            cargarDatosCita(view, cita);
+        }
+
+        return view;
     }
+
+    private void initUI(View view) {
+        spSucursal = view.findViewById(R.id.spSucursal);
+        spPaciente = view.findViewById(R.id.spPaciente);
+        spEstado = view.findViewById(R.id.spEstado);
+
+        etFechaHora = view.findViewById(R.id.etFechaHora);
+        etMotivo = view.findViewById(R.id.etMotivo);
+        etNotas = view.findViewById(R.id.etNotas);
+
+        btnCrearCita = view.findViewById(R.id.btnCrearCita);
+
+        // Estado
+        ArrayAdapter<String> adapterEstado = new ArrayAdapter<>(
+                requireContext(),
+                android.R.layout.simple_spinner_item,
+                Arrays.asList("pendiente", "completada", "cancelada")
+        );
+        adapterEstado.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spEstado.setAdapter(adapterEstado);
+
+        // Cargar sucursales
+        Executors.newSingleThreadExecutor().execute(() -> {
+            sucursales = db.sucursalDao().getAllSucursales();
+            requireActivity().runOnUiThread(() -> {
+                ArrayAdapter<String> ad = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item);
+                ad.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                for (Sucursal s : sucursales) ad.add(s.getNombreSucursal());
+                spSucursal.setAdapter(ad);
+
+                // filtramos pacientes por esa sucursal
+                spSucursal.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                    @Override
+                    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                        if (position >= 0 && position < sucursales.size()) {
+                            int sucId = sucursales.get(position).getId();
+                            cargarPacientesPorSucursal(sucId);
+                        }
+                    }
+
+                    @Override
+                    public void onNothingSelected(AdapterView<?> parent) {
+                    }
+                });
+            });
+        });
+    }
+
+    private void initListeners() {
+        // Picker de fecha y hora (no manual)
+        etFechaHora.setFocusable(false);
+        etFechaHora.setOnClickListener(v -> abrirPickersFechaHora());
+
+        btnCrearCita.setOnClickListener(v -> guardarCita());
+    }
+
+    private void cargarPacientesPorSucursal(int sucursalId) {
+        Executors.newSingleThreadExecutor().execute(() -> {
+            pacientes = db.pacienteDao().obtenerPorSucursal(sucursalId);
+            requireActivity().runOnUiThread(() -> {
+                ArrayAdapter<String> ad = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item);
+                ad.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                for (Paciente p : pacientes) ad.add(p.getNombre() + " " + p.getApellido());
+                spPaciente.setAdapter(ad);
+            });
+        });
+    }
+
+    private void abrirPickersFechaHora() {
+        final Calendar cal = Calendar.getInstance();
+
+        DatePickerDialog dp = new DatePickerDialog(requireContext(),
+                (view, year, month, dayOfMonth) -> {
+                    // Después de escoger la fecha, abrimos el time picker
+                    TimePickerDialog tp = new TimePickerDialog(requireContext(),
+                            (v, hourOfDay, minute) -> {
+                                // Formateo YYYY-MM-DD HH:MM (con cero a la izquierda)
+                                String fecha = String.format(Locale.US, "%04d-%02d-%02d", year, month + 1, dayOfMonth);
+                                String hora = String.format(Locale.US, "%02d:%02d", hourOfDay, minute);
+                                etFechaHora.setText(fecha + " " + hora);
+                            },
+                            cal.get(Calendar.HOUR_OF_DAY),
+                            cal.get(Calendar.MINUTE),
+                            true);
+                    tp.show();
+                },
+                cal.get(Calendar.YEAR),
+                cal.get(Calendar.MONTH),
+                cal.get(Calendar.DAY_OF_MONTH)
+        );
+        dp.show();
+    }
+
+    private void guardarCita() {
+        // Validaciones
+        if (sucursales.isEmpty()) {
+            Toast.makeText(requireContext(), "Primero crea una sucursal", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (spSucursal.getSelectedItemPosition() == AdapterView.INVALID_POSITION) {
+            Toast.makeText(requireContext(), "Selecciona la sucursal", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (spPaciente.getSelectedItemPosition() == AdapterView.INVALID_POSITION || pacientes.isEmpty()) {
+            Toast.makeText(requireContext(), "Selecciona el paciente", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String fechaHora = etFechaHora.getText().toString().trim();
+        String motivo = etMotivo.getText().toString().trim();
+        String notas = etNotas.getText().toString().trim();
+        String estadoSel = spEstado.getSelectedItem() != null ? spEstado.getSelectedItem().toString() : "pendiente";
+
+        if (TextUtils.isEmpty(fechaHora)) {
+            etFechaHora.setError("Selecciona fecha y hora");
+            etFechaHora.requestFocus();
+            return;
+        }
+        if (TextUtils.isEmpty(motivo)) {
+            etMotivo.setError("El motivo es obligatorio");
+            etMotivo.requestFocus();
+            return;
+        }
+
+        // Obtener IDs
+        int posSuc = spSucursal.getSelectedItemPosition();
+        int sucursalId = sucursales.get(posSuc).getId();
+
+        int posPac = spPaciente.getSelectedItemPosition();
+        int pacienteId = pacientes.get(posPac).getId();
+
+        // Regla de solapamiento (solo aplica si estado = pendiente)
+        Executors.newSingleThreadExecutor().execute(() -> {
+            if (estadoSel.equals("pendiente")) {
+                String desde, hasta;
+                try {
+                    Date seleccion = sdf.parse(fechaHora);
+                    if (seleccion == null) throw new ParseException("fecha nula", 0);
+
+                    long t = seleccion.getTime();
+                    // los 30 minutos de cita
+                    long rango30 = 30L * 60L * 1000L;
+
+                    Date dDesde = new Date(t - rango30);
+                    Date dHasta = new Date(t + rango30);
+
+                    desde = sdf.format(dDesde);
+                    hasta = sdf.format(dHasta);
+                } catch (ParseException e) {
+                    requireActivity().runOnUiThread(() ->
+                            Toast.makeText(requireContext(), "Fecha/hora inválida", Toast.LENGTH_SHORT).show());
+                    return;
+                }
+
+                int conflictos = db.citaDao().contarSolapadas(sucursalId, desde, hasta);
+                if (conflictos > 0) {
+                    requireActivity().runOnUiThread(() ->
+                            Toast.makeText(requireContext(),
+                                    "Ya existe una cita en ese rango de 30 minutos.",
+                                    Toast.LENGTH_LONG).show());
+                    return;
+                }
+            }
+
+            // Insertar o actualizar si estuviera en modo edición
+            Cita nueva = new Cita(sucursalId, pacienteId, fechaHora, motivo, notas, estadoSel);
+
+            try {
+                db.citaDao().insertar(nueva);
+                requireActivity().runOnUiThread(() -> {
+                    Toast.makeText(requireContext(), "Cita creada exitosamente", Toast.LENGTH_SHORT).show();
+                    requireActivity().getSupportFragmentManager().popBackStack();
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+                requireActivity().runOnUiThread(() ->
+                        Toast.makeText(requireContext(), "Error al crear la cita", Toast.LENGTH_SHORT).show());
+            }
+        });
+    }
+
+    private void cargarDatosCita(View view, Cita c) {
+        // Estado
+        ArrayAdapter<String> adEstado = (ArrayAdapter<String>) spEstado.getAdapter();
+        if (adEstado != null) {
+            int pos = adEstado.getPosition(c.getEstado());
+            if (pos >= 0) spEstado.setSelection(pos);
+        }
+
+        etFechaHora.setText(c.getFechaHora());
+        etMotivo.setText(c.getMotivo());
+        etNotas.setText(c.getNotas());
+
+        // Sucursal + Paciente (aseguramos cargar spinners y posicionarlos)
+        Executors.newSingleThreadExecutor().execute(() -> {
+            sucursales = db.sucursalDao().getAllSucursales();
+            List<Paciente> pacDeSucursal = db.pacienteDao().obtenerPorSucursal(c.getSucursalId());
+
+            requireActivity().runOnUiThread(() -> {
+                // Sucursal
+                ArrayAdapter<String> adSuc = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item);
+                adSuc.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                int posSuc = -1;
+                for (int i = 0; i < sucursales.size(); i++) {
+                    adSuc.add(sucursales.get(i).getNombreSucursal());
+                    if (sucursales.get(i).getId() == c.getSucursalId()) posSuc = i;
+                }
+                spSucursal.setAdapter(adSuc);
+                if (posSuc >= 0) spSucursal.setSelection(posSuc);
+
+                // Pacientes de esa sucursal
+                pacientes = pacDeSucursal;
+                ArrayAdapter<String> adPac = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item);
+                adPac.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                int posPac = -1;
+                for (int i = 0; i < pacientes.size(); i++) {
+                    Paciente p = pacientes.get(i);
+                    adPac.add(p.getNombre() + " " + p.getApellido());
+                    if (p.getId() == c.getPacienteId()) posPac = i;
+                }
+                spPaciente.setAdapter(adPac);
+                if (posPac >= 0) spPaciente.setSelection(posPac);
+
+                // Cambiar botón a “Actualizar”
+                btnCrearCita.setText("Actualizar Cita");
+                btnCrearCita.setOnClickListener(v -> actualizarCita(c.getId()));
+            });
+        });
+    }
+
+    private void actualizarCita(int idCita) {
+        if (sucursales.isEmpty() || spSucursal.getSelectedItemPosition() == AdapterView.INVALID_POSITION) {
+            Toast.makeText(requireContext(), "Selecciona la sucursal", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (pacientes.isEmpty() || spPaciente.getSelectedItemPosition() == AdapterView.INVALID_POSITION) {
+            Toast.makeText(requireContext(), "Selecciona el paciente", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String fechaHora = etFechaHora.getText().toString().trim();
+        String motivo = etMotivo.getText().toString().trim();
+        String notas = etNotas.getText().toString().trim();
+        String estadoSel = spEstado.getSelectedItem() != null ? spEstado.getSelectedItem().toString() : "pendiente";
+
+        if (TextUtils.isEmpty(fechaHora)) {
+            etFechaHora.setError("Selecciona fecha y hora");
+            etFechaHora.requestFocus();
+            return;
+        }
+        if (TextUtils.isEmpty(motivo)) {
+            etMotivo.setError("El motivo es obligatorio");
+            etMotivo.requestFocus();
+            return;
+        }
+
+        int sucursalId = sucursales.get(spSucursal.getSelectedItemPosition()).getId();
+        int pacienteId = pacientes.get(spPaciente.getSelectedItemPosition()).getId();
+
+        Executors.newSingleThreadExecutor().execute(() -> {
+            // Restricción de solapamiento solo si estado = pendiente
+            if (estadoSel.equals("pendiente")) {
+                String desde, hasta;
+                try {
+                    Date seleccion = sdf.parse(fechaHora);
+                    if (seleccion == null) throw new ParseException("fecha nula", 0);
+
+                    long t = seleccion.getTime();
+                    long rango30 = 30L * 60L * 1000L;
+
+                    desde = sdf.format(new Date(t - rango30));
+                    hasta = sdf.format(new Date(t + rango30));
+                } catch (ParseException e) {
+                    requireActivity().runOnUiThread(() ->
+                            Toast.makeText(requireContext(), "Fecha/hora inválida", Toast.LENGTH_SHORT).show());
+                    return;
+                }
+
+                // Si hay otra cita pendiente en ese rango, no permitir (ideal: excluirse a sí misma con id != :idCita)
+                int conflictos = db.citaDao().contarSolapadas(sucursalId, desde, hasta);
+                if (conflictos > 0) {
+                    requireActivity().runOnUiThread(() ->
+                            Toast.makeText(requireContext(),
+                                    "Ya existe una cita en ese rango de 30 minutos.",
+                                    Toast.LENGTH_LONG).show());
+                    return;
+                }
+            }
+
+            Cita act = new Cita(sucursalId, pacienteId, fechaHora, motivo, notas, estadoSel);
+            act.setId(idCita);
+
+            try {
+                db.citaDao().actualizar(act);
+                requireActivity().runOnUiThread(() -> {
+                    Toast.makeText(requireContext(), "Cita actualizada", Toast.LENGTH_SHORT).show();
+                    requireActivity().getSupportFragmentManager().popBackStack();
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+                requireActivity().runOnUiThread(() ->
+                        Toast.makeText(requireContext(), "Error al actualizar la cita", Toast.LENGTH_SHORT).show());
+            }
+        });
+    }
+
 }

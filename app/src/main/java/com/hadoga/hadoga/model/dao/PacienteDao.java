@@ -29,4 +29,7 @@ public interface PacienteDao {
 
     @Query("SELECT * FROM paciente WHERE sucursal_id = :sucursalId ORDER BY id DESC")
     List<Paciente> obtenerPorSucursal(int sucursalId);
+
+    @Query("SELECT * FROM paciente WHERE id = :id LIMIT 1")
+    Paciente obtenerPorId(int id);
 }

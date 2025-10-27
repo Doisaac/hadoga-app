@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/HadogaCardButton"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="25dp"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:padding="20dp">
+
+    <!-- Bloque Izquierdo: Información principal + botones -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:gravity="start"
+        android:orientation="vertical">
+
+        <!-- Nombre -->
+        <TextView
+            android:id="@+id/tvNombrePacienteCita"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="4dp"
+            android:textColor="@android:color/black"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <!-- Fecha -->
+        <TextView
+            android:id="@+id/tvFechaCita"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="2dp"
+            android:text="Fecha: 2025-09-14 3:30"
+            android:textColor="@android:color/black"
+            android:textSize="14sp" />
+
+        <!-- Sucursal -->
+        <TextView
+            android:id="@+id/tvSucursalCita"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="10dp"
+            android:text="Sucursal: Santa Ana"
+            android:textColor="@android:color/black"
+            android:textSize="14sp" />
+
+        <!-- Botones -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="start"
+            android:orientation="horizontal">
+
+            <android.widget.Button
+                android:id="@+id/btnEditarCita"
+                style="@style/HadogaMiniButtonBlue"
+                android:layout_height="33dp"
+                android:layout_marginEnd="8dp"
+                android:text="Editar" />
+
+            <android.widget.Button
+                android:id="@+id/btnBorrarCita"
+                style="@style/HadogaMiniButtonPurple"
+                android:layout_height="33dp"
+                android:text="Borrar" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Bloque Derecho: Estado alineado al fondo -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:gravity="bottom|end"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tvEstadoCita"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Estado: Pendiente"
+            android:textColor="@android:color/black"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+</LinearLayout>
