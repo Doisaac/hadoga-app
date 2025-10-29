@@ -9,8 +9,11 @@ import androidx.fragment.app.Fragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.hadoga.hadoga.R;
 import com.hadoga.hadoga.view.fragments.DashboardFragment;
+import com.hadoga.hadoga.view.fragments.ListaCitasFragment;
+import com.hadoga.hadoga.view.fragments.ListaPacientesFragment;
 
 public class MainActivity extends AppCompatActivity {
+    // Definición del BottomNavigationView
     private BottomNavigationView bottomNavigationView;
 
     @Override
@@ -27,10 +30,22 @@ public class MainActivity extends AppCompatActivity {
         bottomNavigationView.setOnItemSelectedListener(item -> {
             Fragment selectedFragment = null;
 
+            // Opción "Inicio"
             if (item.getItemId() == R.id.menu_dashboard) {
                 selectedFragment = new DashboardFragment();
             }
 
+            // Opción "Citas"
+            else if (item.getItemId() == R.id.menu_citas) {
+                selectedFragment = new ListaCitasFragment();
+            }
+
+            // Opción "Expedientes"
+            else if (item.getItemId() == R.id.menu_expedientes) {
+                selectedFragment = new ListaPacientesFragment();
+            }
+
+            // Cargar el fragmento seleccionado
             if (selectedFragment != null) {
                 loadFragment(selectedFragment);
                 return true;
@@ -39,6 +54,7 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    // Método para reemplazar el fragmento actual
     private void loadFragment(@NonNull Fragment fragment) {
         getSupportFragmentManager()
                 .beginTransaction()

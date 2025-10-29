@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Fondo cuando está seleccionado -->
+    <!-- Fondo azul cuando está seleccionado -->
     <item android:drawable="@color/colorBlue" android:state_checked="true"/>
-    <!-- Fondo cuando no está seleccionado -->
+    <!-- Fondo transparente cuando no está seleccionado -->
     <item android:drawable="@android:color/transparent"/>
 </selector>

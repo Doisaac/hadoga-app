@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:color="@color/colorBlue" android:state_checked="true"/>
+    <!-- Ítem seleccionado: texto e iconos negros -->
+    <item android:color="@android:color/black" android:state_checked="true"/>
+    <!-- Ítem no seleccionado: gris -->
     <item android:color="@color/colorGrayText"/>
 </selector>
