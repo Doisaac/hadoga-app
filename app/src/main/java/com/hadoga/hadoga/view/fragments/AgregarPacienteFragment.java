@@ -96,12 +96,24 @@ public class AgregarPacienteFragment extends Fragment {
             requireActivity().runOnUiThread(() -> {
                 ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item);
                 adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+
+                // Agregamos el ítem por defecto
+                adapter.add("Selecciona una sucursal");
+
+                // Si hay sucursales en la BD, las agregamos después
                 for (Sucursal s : listaSucursales) {
                     adapter.add(s.getNombreSucursal());
                 }
+
                 spSucursal.setAdapter(adapter);
+
+                // Siempre mostrar el ítem "Selecciona tu sucursal" como opción inicial
+                spSucursal.setSelection(0);
+                spSucursal.setEnabled(true);
+
             });
         });
+
     }
 
     private void initListeners(View view) {
@@ -175,7 +187,7 @@ public class AgregarPacienteFragment extends Fragment {
             Toast.makeText(requireContext(), "Selecciona un género", Toast.LENGTH_SHORT).show();
             return;
         }
-        if (TextUtils.isEmpty(sucursalNombre)) {
+        if (TextUtils.isEmpty(sucursalNombre) || sucursalNombre.equals("Selecciona una sucursal")) {
             Toast.makeText(requireContext(), "Selecciona una sucursal", Toast.LENGTH_SHORT).show();
             return;
         }
@@ -252,15 +264,19 @@ public class AgregarPacienteFragment extends Fragment {
                 ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item);
                 adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 
-                int posSel = -1;
+                // Agregar item por defecto
+                adapter.add("Selecciona una sucursal");
+
+                int posSel = 0; // por defecto en "Selecciona una sucursal"
                 for (int i = 0; i < lista.size(); i++) {
                     Sucursal s = lista.get(i);
                     adapter.add(s.getNombreSucursal());
-                    if (s.getId() == p.getSucursalId()) posSel = i;
+                    if (s.getId() == p.getSucursalId()) posSel = i + 1; // +1 porque el primer item es el placeholder
                 }
 
                 spSucursal.setAdapter(adapter);
-                if (posSel >= 0) spSucursal.setSelection(posSel);
+                spSucursal.setSelection(posSel);
+                spSucursal.setEnabled(!lista.isEmpty());
             });
         });
 

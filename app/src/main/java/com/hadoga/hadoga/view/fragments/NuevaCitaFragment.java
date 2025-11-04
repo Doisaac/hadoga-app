@@ -43,6 +43,7 @@ public class NuevaCitaFragment extends Fragment {
     private List<Sucursal> sucursales = new ArrayList<>();
     private List<Paciente> pacientes = new ArrayList<>();
 
+    private boolean isEditingMode = false;
     private final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US);
 
     @Nullable
@@ -87,25 +88,41 @@ public class NuevaCitaFragment extends Fragment {
         Executors.newSingleThreadExecutor().execute(() -> {
             sucursales = db.sucursalDao().getAllSucursales();
             requireActivity().runOnUiThread(() -> {
-                ArrayAdapter<String> ad = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item);
-                ad.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-                for (Sucursal s : sucursales) ad.add(s.getNombreSucursal());
-                spSucursal.setAdapter(ad);
+                ArrayAdapter<String> adSuc = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item);
+                adSuc.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 
-                // filtramos pacientes por esa sucursal
+                //  Item por defecto
+                adSuc.add("Selecciona una sucursal");
+
+                //  Agregar sucursales reales
+                for (Sucursal s : sucursales) adSuc.add(s.getNombreSucursal());
+
+                spSucursal.setAdapter(adSuc);
+                spSucursal.setSelection(0);
+
+                // Listener para cargar pacientes al elegir sucursal
                 spSucursal.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
                     @Override
                     public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                        if (position >= 0 && position < sucursales.size()) {
-                            int sucId = sucursales.get(position).getId();
+                        // Reiniciar pacientes cada vez que se cambia sucursal
+                        ArrayAdapter<String> adapterPacientes = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item);
+                        adapterPacientes.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                        adapterPacientes.add("Selecciona un paciente");
+                        spPaciente.setAdapter(adapterPacientes);
+                        pacientes.clear();
+
+                        // Solo cargar si realmente se elige una sucursal valida
+                        if (position > 0) {
+                            int sucId = sucursales.get(position - 1).getId();
                             cargarPacientesPorSucursal(sucId);
                         }
                     }
 
                     @Override
-                    public void onNothingSelected(AdapterView<?> parent) {
-                    }
+                    public void onNothingSelected(AdapterView<?> parent) { }
                 });
+
+
             });
         });
     }
@@ -119,17 +136,46 @@ public class NuevaCitaFragment extends Fragment {
     }
 
     private void cargarPacientesPorSucursal(int sucursalId) {
+        cargarPacientesPorSucursal(sucursalId, -1); // -1 indica “no hay paciente preseleccionado”
+    }
+
+    // Sobrecarga del método: permite cargar pacientes y, opcionalmente, seleccionar uno específico
+    private void cargarPacientesPorSucursal(int sucursalId, int pacienteSeleccionadoId) {
         Executors.newSingleThreadExecutor().execute(() -> {
             pacientes = db.pacienteDao().obtenerPorSucursal(sucursalId);
             requireActivity().runOnUiThread(() -> {
-                ArrayAdapter<String> ad = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item);
+                ArrayAdapter<String> ad = new ArrayAdapter<String>(requireContext(), android.R.layout.simple_spinner_item) {
+                    @Override
+                    public View getView(int position, View convertView, ViewGroup parent) {
+                        View view = super.getView(position, convertView, parent);
+                        ((android.widget.TextView) view).setTextColor(getResources().getColor(android.R.color.white));
+                        return view;
+                    }
+
+                    @Override
+                    public View getDropDownView(int position, View convertView, ViewGroup parent) {
+                        View view = super.getDropDownView(position, convertView, parent);
+                        ((android.widget.TextView) view).setTextColor(getResources().getColor(android.R.color.white));
+                        return view;
+                    }
+                };
+
                 ad.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-                for (Paciente p : pacientes) ad.add(p.getNombre() + " " + p.getApellido());
+
+                ad.add("Selecciona un paciente");
+                int posSel = 0;
+
+                for (int i = 0; i < pacientes.size(); i++) {
+                    Paciente p = pacientes.get(i);
+                    ad.add(p.getNombre() + " " + p.getApellido());
+                    if (p.getId() == pacienteSeleccionadoId) posSel = i + 1; // +1 por placeholder
+                }
+
                 spPaciente.setAdapter(ad);
+                spPaciente.setSelection(posSel);
             });
         });
     }
-
     private void abrirPickersFechaHora() {
         final Calendar cal = Calendar.getInstance();
 
@@ -157,18 +203,15 @@ public class NuevaCitaFragment extends Fragment {
 
     private void guardarCita() {
         // Validaciones
-        if (sucursales.isEmpty()) {
-            Toast.makeText(requireContext(), "Primero crea una sucursal", Toast.LENGTH_SHORT).show();
+        if (spSucursal.getSelectedItemPosition() == 0) {
+            Toast.makeText(requireContext(), "Selecciona una sucursal", Toast.LENGTH_SHORT).show();
             return;
         }
-        if (spSucursal.getSelectedItemPosition() == AdapterView.INVALID_POSITION) {
-            Toast.makeText(requireContext(), "Selecciona la sucursal", Toast.LENGTH_SHORT).show();
+        if (spPaciente.getSelectedItemPosition() == 0) {
+            Toast.makeText(requireContext(), "Selecciona un paciente", Toast.LENGTH_SHORT).show();
             return;
         }
-        if (spPaciente.getSelectedItemPosition() == AdapterView.INVALID_POSITION || pacientes.isEmpty()) {
-            Toast.makeText(requireContext(), "Selecciona el paciente", Toast.LENGTH_SHORT).show();
-            return;
-        }
+
 
         String fechaHora = etFechaHora.getText().toString().trim();
         String motivo = etMotivo.getText().toString().trim();
@@ -186,12 +229,23 @@ public class NuevaCitaFragment extends Fragment {
             return;
         }
 
-        // Obtener IDs
+        // Obtener IDs (con validación y ajuste de índice)
         int posSuc = spSucursal.getSelectedItemPosition();
-        int sucursalId = sucursales.get(posSuc).getId();
-
         int posPac = spPaciente.getSelectedItemPosition();
-        int pacienteId = pacientes.get(posPac).getId();
+
+        // Validar que no se haya dejado el placeholder seleccionado
+        if (posSuc <= 0) {
+            Toast.makeText(requireContext(), "Selecciona una sucursal válida", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (posPac <= 0) {
+            Toast.makeText(requireContext(), "Selecciona un paciente válido", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        int sucursalId = sucursales.get(posSuc - 1).getId();
+        int pacienteId = pacientes.get(posPac - 1).getId();
+
 
         // Regla de solapamiento (solo aplica si estado = pendiente)
         Executors.newSingleThreadExecutor().execute(() -> {
@@ -242,8 +296,9 @@ public class NuevaCitaFragment extends Fragment {
             }
         });
     }
-
     private void cargarDatosCita(View view, Cita c) {
+        isEditingMode = true; // evita recargas innecesarias
+
         // Estado
         ArrayAdapter<String> adEstado = (ArrayAdapter<String>) spEstado.getAdapter();
         if (adEstado != null) {
@@ -255,58 +310,78 @@ public class NuevaCitaFragment extends Fragment {
         etMotivo.setText(c.getMotivo());
         etNotas.setText(c.getNotas());
 
-        // Sucursal + Paciente (aseguramos cargar spinners y posicionarlos)
+        // Cargar sucursales
         Executors.newSingleThreadExecutor().execute(() -> {
             sucursales = db.sucursalDao().getAllSucursales();
-            List<Paciente> pacDeSucursal = db.pacienteDao().obtenerPorSucursal(c.getSucursalId());
 
             requireActivity().runOnUiThread(() -> {
-                // Sucursal
                 ArrayAdapter<String> adSuc = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item);
                 adSuc.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-                int posSuc = -1;
+
+                adSuc.add("Selecciona una sucursal");
+                int posSuc = 0;
+
                 for (int i = 0; i < sucursales.size(); i++) {
                     adSuc.add(sucursales.get(i).getNombreSucursal());
-                    if (sucursales.get(i).getId() == c.getSucursalId()) posSuc = i;
+                    if (sucursales.get(i).getId() == c.getSucursalId()) posSuc = i + 1;
                 }
+
                 spSucursal.setAdapter(adSuc);
-                if (posSuc >= 0) spSucursal.setSelection(posSuc);
+                spSucursal.setSelection(posSuc);
 
-                // Pacientes de esa sucursal
-                pacientes = pacDeSucursal;
-                ArrayAdapter<String> adPac = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item);
-                adPac.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-                int posPac = -1;
-                for (int i = 0; i < pacientes.size(); i++) {
-                    Paciente p = pacientes.get(i);
-                    adPac.add(p.getNombre() + " " + p.getApellido());
-                    if (p.getId() == c.getPacienteId()) posPac = i;
-                }
-                spPaciente.setAdapter(adPac);
-                if (posPac >= 0) spPaciente.setSelection(posPac);
+                // --- Pacientes de esa sucursal ---
+                cargarPacientesPorSucursal(c.getSucursalId(), c.getPacienteId());
 
-                // Cambiar botón a “Actualizar”
+                // Listener
+                spSucursal.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                    @Override
+                    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                        if (isEditingMode) {
+                            // Evitar recarga inmediata al entrar
+                            isEditingMode = false;
+                            return;
+                        }
+
+                        if (position > 0) {
+                            int sucId = sucursales.get(position - 1).getId();
+                            cargarPacientesPorSucursal(sucId);
+                        } else {
+                            ArrayAdapter<String> vacio = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item);
+                            vacio.add("Selecciona un paciente");
+                            spPaciente.setAdapter(vacio);
+                            pacientes.clear();
+                        }
+                    }
+
+                    @Override
+                    public void onNothingSelected(AdapterView<?> parent) { }
+                });
+
                 btnCrearCita.setText("Actualizar Cita");
                 btnCrearCita.setOnClickListener(v -> actualizarCita(c.getId()));
             });
         });
     }
-
     private void actualizarCita(int idCita) {
-        if (sucursales.isEmpty() || spSucursal.getSelectedItemPosition() == AdapterView.INVALID_POSITION) {
+        // Validaciones de selección
+        if (spSucursal.getSelectedItemPosition() <= 0) {
             Toast.makeText(requireContext(), "Selecciona la sucursal", Toast.LENGTH_SHORT).show();
             return;
         }
-        if (pacientes.isEmpty() || spPaciente.getSelectedItemPosition() == AdapterView.INVALID_POSITION) {
+        if (spPaciente.getSelectedItemPosition() <= 0) {
             Toast.makeText(requireContext(), "Selecciona el paciente", Toast.LENGTH_SHORT).show();
             return;
         }
 
+        // Obtener datos de campos
         String fechaHora = etFechaHora.getText().toString().trim();
         String motivo = etMotivo.getText().toString().trim();
         String notas = etNotas.getText().toString().trim();
-        String estadoSel = spEstado.getSelectedItem() != null ? spEstado.getSelectedItem().toString() : "pendiente";
+        String estadoSel = spEstado.getSelectedItem() != null
+                ? spEstado.getSelectedItem().toString()
+                : "pendiente";
 
+        // Validaciones básicas
         if (TextUtils.isEmpty(fechaHora)) {
             etFechaHora.setError("Selecciona fecha y hora");
             etFechaHora.requestFocus();
@@ -318,13 +393,13 @@ public class NuevaCitaFragment extends Fragment {
             return;
         }
 
-        int sucursalId = sucursales.get(spSucursal.getSelectedItemPosition()).getId();
-        int pacienteId = pacientes.get(spPaciente.getSelectedItemPosition()).getId();
+        // Obtener IDs considerando el placeholder
+        int sucursalId = sucursales.get(spSucursal.getSelectedItemPosition() - 1).getId();
+        int pacienteId = pacientes.get(spPaciente.getSelectedItemPosition() - 1).getId();
 
         Executors.newSingleThreadExecutor().execute(() -> {
-            // Restricción de solapamiento solo si estado = pendiente
+            // Validar solapamiento solo si el estado es pendiente
             if (estadoSel.equals("pendiente")) {
-                String desde, hasta;
                 try {
                     Date seleccion = sdf.parse(fechaHora);
                     if (seleccion == null) throw new ParseException("fecha nula", 0);
@@ -332,32 +407,32 @@ public class NuevaCitaFragment extends Fragment {
                     long t = seleccion.getTime();
                     long rango30 = 30L * 60L * 1000L;
 
-                    desde = sdf.format(new Date(t - rango30));
-                    hasta = sdf.format(new Date(t + rango30));
+                    String desde = sdf.format(new Date(t - rango30));
+                    String hasta = sdf.format(new Date(t + rango30));
+
+                    int conflictos = db.citaDao().contarSolapadas(sucursalId, desde, hasta);
+                    if (conflictos > 0) {
+                        requireActivity().runOnUiThread(() ->
+                                Toast.makeText(requireContext(),
+                                        "Ya existe una cita en ese rango de 30 minutos.",
+                                        Toast.LENGTH_LONG).show());
+                        return;
+                    }
                 } catch (ParseException e) {
                     requireActivity().runOnUiThread(() ->
                             Toast.makeText(requireContext(), "Fecha/hora inválida", Toast.LENGTH_SHORT).show());
                     return;
                 }
-
-                // Si hay otra cita pendiente en ese rango, no permitir (ideal: excluirse a sí misma con id != :idCita)
-                int conflictos = db.citaDao().contarSolapadas(sucursalId, desde, hasta);
-                if (conflictos > 0) {
-                    requireActivity().runOnUiThread(() ->
-                            Toast.makeText(requireContext(),
-                                    "Ya existe una cita en ese rango de 30 minutos.",
-                                    Toast.LENGTH_LONG).show());
-                    return;
-                }
             }
 
+            // Crear objeto actualizado
             Cita act = new Cita(sucursalId, pacienteId, fechaHora, motivo, notas, estadoSel);
             act.setId(idCita);
 
             try {
                 db.citaDao().actualizar(act);
                 requireActivity().runOnUiThread(() -> {
-                    Toast.makeText(requireContext(), "Cita actualizada", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(requireContext(), "Cita actualizada exitosamente", Toast.LENGTH_SHORT).show();
                     requireActivity().getSupportFragmentManager().popBackStack();
                 });
             } catch (Exception e) {

@@ -189,14 +189,49 @@ public class AgregarDoctorFragment extends Fragment {
         adapterEspecialidad.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spEspecialidad.setAdapter(adapterEspecialidad);
 
-        // Spinner de sucursales (cargadas desde la BD)
+        // Spinner de sucursales
         Executors.newSingleThreadExecutor().execute(() -> {
             var listaSucursales = db.sucursalDao().getAllSucursales();
             requireActivity().runOnUiThread(() -> {
-                ArrayAdapter<String> adapterSucursal = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item);
+
+                ArrayAdapter<String> adapterSucursal = new ArrayAdapter<String>(
+                        requireContext(), android.R.layout.simple_spinner_item) {
+
+                    @Override
+                    public boolean isEnabled(int position) {
+                        // Deshabilitar el primer item (placeholder)
+                        return position != 0;
+                    }
+
+                    @Override
+                    public View getDropDownView(int position, View convertView, ViewGroup parent) {
+                        View viewItem = super.getDropDownView(position, convertView, parent);
+                        android.widget.TextView textView = (android.widget.TextView) viewItem;
+
+                        if (position == 0) {
+                            // Placeholder gris
+                            textView.setTextColor(getResources().getColor(android.R.color.darker_gray));
+                        } else {
+                            textView.setTextColor(getResources().getColor(android.R.color.white));
+                        }
+
+                        return viewItem;
+                    }
+
+                };
+
                 adapterSucursal.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-                for (var s : listaSucursales) adapterSucursal.add(s.getNombreSucursal());
+
+                // Agregar el item por defecto
+                adapterSucursal.add("Selecciona una sucursal");
+
+                // Agregar las sucursales reales
+                for (var s : listaSucursales) {
+                    adapterSucursal.add(s.getNombreSucursal());
+                }
+
                 spSucursal.setAdapter(adapterSucursal);
+                spSucursal.setSelection(0);
             });
         });
     }
