@@ -18,7 +18,7 @@ import com.hadoga.hadoga.view.LoginActivity;
 
 public class DashboardFragment extends Fragment {
 
-    private TextView txtNombreClinica; // 🔹 referencia al TextView del XML
+    private TextView txtNombreClinica; // referencia al TextView del XML
 
     public DashboardFragment() {}
 

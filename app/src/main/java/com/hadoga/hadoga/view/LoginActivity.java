@@ -2,16 +2,23 @@ package com.hadoga.hadoga.view;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Patterns;
+import android.view.Gravity;
+import android.view.LayoutInflater;
+import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
 import com.hadoga.hadoga.R;
 import com.hadoga.hadoga.model.database.HadogaDatabase;
@@ -101,7 +108,7 @@ public class LoginActivity extends AppCompatActivity {
         Usuario user = db.usuarioDao().login(email, password);
 
         if (user == null) {
-            Toast.makeText(this, "Credenciales incorrectas", Toast.LENGTH_SHORT).show();
+            showSnackbarLikeToast("Credenciales incorrectas", true);
             return;
         }
 
@@ -113,7 +120,7 @@ public class LoginActivity extends AppCompatActivity {
             clearUserCredentials();
         }
 
-        Toast.makeText(this, "Bienvenido", Toast.LENGTH_SHORT).show();
+        showSnackbarLikeToast("Bienvenido", false);
 
         // Guardar el email del usuario logueado para usarlo en DashboardFragment
         SharedPreferences prefs = getSharedPreferences("hadoga_prefs", MODE_PRIVATE);
@@ -153,6 +160,35 @@ public class LoginActivity extends AppCompatActivity {
             inputPassword.setText(savedPassword);
             checkRemember.setChecked(true);
         }
+    }
+
+    private void showSnackbarLikeToast(String message, boolean isError) {
+        LayoutInflater inflater = getLayoutInflater();
+        View layout = inflater.inflate(R.layout.custom_toast, null);
+
+        LinearLayout container = layout.findViewById(R.id.toast_container);
+        ImageView icon = layout.findViewById(R.id.toast_icon);
+        TextView text = layout.findViewById(R.id.toast_message);
+
+        text.setText(message);
+
+        // Cambiar color de fondo e ícono según el estado
+        int color = isError
+                ? ContextCompat.getColor(this, android.R.color.holo_red_dark)
+                : ContextCompat.getColor(this, R.color.colorBlue);
+
+        GradientDrawable background = new GradientDrawable();
+        background.setCornerRadius(24f);
+        background.setColor(color);
+        container.setBackground(background);
+
+        icon.setImageResource(isError ? R.drawable.ic_error : R.drawable.ic_check_circle);
+
+        Toast toast = new Toast(getApplicationContext());
+        toast.setDuration(Toast.LENGTH_LONG);
+        toast.setView(layout);
+        toast.setGravity(Gravity.BOTTOM, 0, 120);
+        toast.show();
     }
 
 }

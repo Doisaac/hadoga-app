@@ -1,16 +1,23 @@
 package com.hadoga.hadoga.view;
 
 import android.content.Intent;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Patterns;
+import android.view.Gravity;
+import android.view.LayoutInflater;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.hadoga.hadoga.R;
@@ -111,8 +118,7 @@ public class RegisterActivity extends AppCompatActivity {
 
             new Thread(() -> db.usuarioDao().insert(nuevo)).start();
 
-            Toast.makeText(this, "Sin conexión. Guardado localmente (pendiente de sincronizar).", Toast.LENGTH_LONG).show();
-
+            showSnackbarLikeToast("Sin conexión. Guardado localmente (pendiente de sincronizar).", true);
             goToLogin();
             return;
         }
@@ -132,14 +138,14 @@ public class RegisterActivity extends AppCompatActivity {
                     nuevo.setEstadoSincronizacion("SINCRONIZADO");
                     new Thread(() -> db.usuarioDao().insert(nuevo)).start();
 
-                    Toast.makeText(this, "Usuario registrado y sincronizado correctamente.", Toast.LENGTH_SHORT).show();
+                    showSnackbarLikeToast("Usuario registrado y sincronizado correctamente.", false);
                     goToLogin();
                 })
                 .addOnFailureListener(e -> {
                     nuevo.setEstadoSincronizacion("PENDIENTE");
                     new Thread(() -> db.usuarioDao().insert(nuevo)).start();
 
-                    Toast.makeText(this, "Error al sincronizar. Guardado localmente.", Toast.LENGTH_LONG).show();
+                    showSnackbarLikeToast("Error al sincronizar. Guardado localmente.", true);
                     goToLogin();
                 });
     }
@@ -148,6 +154,35 @@ public class RegisterActivity extends AppCompatActivity {
         Intent intent = new Intent(RegisterActivity.this, LoginActivity.class);
         startActivity(intent);
         finish();
+    }
+
+    private void showSnackbarLikeToast(String message, boolean isError) {
+        LayoutInflater inflater = getLayoutInflater();
+        View layout = inflater.inflate(R.layout.custom_toast, null);
+
+        LinearLayout container = layout.findViewById(R.id.toast_container);
+        ImageView icon = layout.findViewById(R.id.toast_icon);
+        TextView text = layout.findViewById(R.id.toast_message);
+
+        text.setText(message);
+
+        // Cambiar color de fondo e ícono según el estado
+        int color = isError
+                ? ContextCompat.getColor(this, android.R.color.holo_red_dark)
+                : ContextCompat.getColor(this, R.color.colorBlue);
+
+        GradientDrawable background = new GradientDrawable();
+        background.setCornerRadius(24f);
+        background.setColor(color);
+        container.setBackground(background);
+
+        icon.setImageResource(isError ? R.drawable.ic_error : R.drawable.ic_check_circle);
+
+        Toast toast = new Toast(getApplicationContext());
+        toast.setDuration(Toast.LENGTH_LONG);
+        toast.setView(layout);
+        toast.setGravity(Gravity.BOTTOM, 0, 120);
+        toast.show();
     }
 
 }
