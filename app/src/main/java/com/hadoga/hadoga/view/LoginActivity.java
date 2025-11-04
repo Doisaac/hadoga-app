@@ -20,9 +20,15 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.hadoga.hadoga.R;
 import com.hadoga.hadoga.model.database.HadogaDatabase;
 import com.hadoga.hadoga.model.entities.Usuario;
+import com.hadoga.hadoga.utils.FirebaseService;
+import com.hadoga.hadoga.utils.NetworkUtils;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class LoginActivity extends AppCompatActivity {
     // Definición de elementos
@@ -104,25 +110,93 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
 
-        // En caso pase las validaciones entonces, busca el usuario con login
-        Usuario user = db.usuarioDao().login(email, password);
+        // Modo sin conexión
+        if (!NetworkUtils.isNetworkAvailable(this)) {
 
-        if (user == null) {
-            showSnackbarLikeToast("Credenciales incorrectas", true);
+            Usuario user = db.usuarioDao().login(email, password);
+            if (user == null) {
+                showSnackbarLikeToast("Sin conexión y credenciales no encontradas localmente", true);
+                return;
+            }
+
+            // Si existe localmente
+            showSnackbarLikeToast("Inicio de sesión local exitoso", false);
+            handleSuccessfulLogin(email, password);
             return;
         }
 
-        // Guardar credenciales del usuario (en caso de clic en recordarme)
+        // Modo con conexión
+        FirebaseFirestore firestore = FirebaseService.getInstance();
+
+        firestore.collection("usuarios")
+                .document(email)
+                .get()
+                .addOnSuccessListener(document -> {
+                    if (document.exists()) {
+                        // Si ya está en Firestore, validamos contraseña
+                        String storedPassword = document.getString("contrasena");
+                        if (storedPassword != null && storedPassword.equals(password)) {
+                            showSnackbarLikeToast("Bienvenido", false);
+
+                            // Guardar localmente si aún no está
+                            Usuario existing = db.usuarioDao().login(email, password);
+                            if (existing == null) {
+                                Usuario nuevo = new Usuario(
+                                        document.getString("nombreClinica"),
+                                        email,
+                                        password
+                                );
+                                nuevo.setEstadoSincronizacion("SINCRONIZADO");
+                                new Thread(() -> db.usuarioDao().insert(nuevo)).start();
+                            }
+
+                            handleSuccessfulLogin(email, password);
+                        } else {
+                            showSnackbarLikeToast("Contraseña incorrecta", true);
+                        }
+
+                    } else {
+                        // No existe en Firestore, pero si existe localmente
+                        Usuario localUser = db.usuarioDao().login(email, password);
+                        if (localUser != null) {
+                            // Subir a Firestore automáticamente
+                            Map<String, Object> userMap = new HashMap<>();
+                            userMap.put("nombreClinica", localUser.getNombreClinica());
+                            userMap.put("email", localUser.getEmail());
+                            userMap.put("contrasena", localUser.getContrasena());
+                            userMap.put("estado_sincronizacion", "SINCRONIZADO");
+
+                            firestore.collection("usuarios").document(email)
+                                    .set(userMap)
+                                    .addOnSuccessListener(aVoid -> {
+                                        localUser.setEstadoSincronizacion("SINCRONIZADO");
+                                        new Thread(() -> db.usuarioDao().update(localUser)).start();
+
+                                        showSnackbarLikeToast("¡Cuenta sincronizada con la nube. Bienvenido!", false);
+                                        handleSuccessfulLogin(email, password);
+                                    })
+                                    .addOnFailureListener(e -> {
+                                        showSnackbarLikeToast("Error al sincronizar cuenta local con la nube", true);
+                                    });
+                        } else {
+                            showSnackbarLikeToast("Usuario no encontrado ni local ni en la nube", true);
+                        }
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    showSnackbarLikeToast("Error al conectar con Firestore", true);
+                });
+    }
+
+    private void handleSuccessfulLogin(String email, String password) {
+        // Guardar credenciales si marcó "Recordarme"
         if (checkRemember.isChecked()) {
             saveUserCredentials(email, password);
         } else {
-            // Si no da clic, entonces se limpia el preferences
             clearUserCredentials();
         }
 
-        showSnackbarLikeToast("Bienvenido", false);
-
-        // Guardar el email del usuario logueado para usarlo en DashboardFragment
+        // Guardar email activo
         SharedPreferences prefs = getSharedPreferences("hadoga_prefs", MODE_PRIVATE);
         prefs.edit().putString("usuario_email", email).apply();
 
