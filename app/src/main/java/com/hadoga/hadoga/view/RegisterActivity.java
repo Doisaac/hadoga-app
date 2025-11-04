@@ -12,9 +12,15 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.hadoga.hadoga.R;
 import com.hadoga.hadoga.model.database.HadogaDatabase;
 import com.hadoga.hadoga.model.entities.Usuario;
+import com.hadoga.hadoga.utils.FirebaseService;
+import com.hadoga.hadoga.utils.NetworkUtils;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class RegisterActivity extends AppCompatActivity {
     // Definición de elementos
@@ -95,13 +101,50 @@ public class RegisterActivity extends AppCompatActivity {
             return;
         }
 
-        // Insertar usuario
+        // Crear objeto usuario
         Usuario nuevo = new Usuario(nombre, email, password);
-        db.usuarioDao().insert(nuevo);
 
-        Toast.makeText(this, "Usuario registrado correctamente", Toast.LENGTH_SHORT).show();
+        // Verificar conexión
+        if (!NetworkUtils.isNetworkAvailable(this)) {
+            // Guardar localmente (offline)
+            nuevo.setEstadoSincronizacion("PENDIENTE");
 
-        // Volver al login
+            new Thread(() -> db.usuarioDao().insert(nuevo)).start();
+
+            Toast.makeText(this, "Sin conexión. Guardado localmente (pendiente de sincronizar).", Toast.LENGTH_LONG).show();
+
+            goToLogin();
+            return;
+        }
+
+        // --- Si hay conexión ---
+        FirebaseFirestore firestore = FirebaseService.getInstance();
+
+        Map<String, Object> userMap = new HashMap<>();
+        userMap.put("nombreClinica", nombre);
+        userMap.put("email", email);
+        userMap.put("contrasena", password);
+        userMap.put("estado_sincronizacion", "SINCRONIZADO");
+
+        firestore.collection("usuarios").document(email)
+                .set(userMap)
+                .addOnSuccessListener(aVoid -> {
+                    nuevo.setEstadoSincronizacion("SINCRONIZADO");
+                    new Thread(() -> db.usuarioDao().insert(nuevo)).start();
+
+                    Toast.makeText(this, "Usuario registrado y sincronizado correctamente.", Toast.LENGTH_SHORT).show();
+                    goToLogin();
+                })
+                .addOnFailureListener(e -> {
+                    nuevo.setEstadoSincronizacion("PENDIENTE");
+                    new Thread(() -> db.usuarioDao().insert(nuevo)).start();
+
+                    Toast.makeText(this, "Error al sincronizar. Guardado localmente.", Toast.LENGTH_LONG).show();
+                    goToLogin();
+                });
+    }
+
+    private void goToLogin() {
         Intent intent = new Intent(RegisterActivity.this, LoginActivity.class);
         startActivity(intent);
         finish();
