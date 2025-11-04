@@ -123,7 +123,7 @@ public class RegisterActivity extends AppCompatActivity {
             return;
         }
 
-        // --- Si hay conexión ---
+        // Si hay conexión
         FirebaseFirestore firestore = FirebaseService.getInstance();
 
         Map<String, Object> userMap = new HashMap<>();
