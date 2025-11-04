@@ -38,12 +38,14 @@
                     android:textStyle="bold" />
 
                 <TextView
+                    android:id="@+id/txtNombreClinica"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="HADOGA Santa Ana"
+                    android:text="Cargando..."
                     android:textColor="@android:color/white"
                     android:textSize="30sp"
                     android:textStyle="bold" />
+
             </LinearLayout>
 
             <!-- Primera fila -->

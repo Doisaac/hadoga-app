@@ -115,6 +115,10 @@ public class LoginActivity extends AppCompatActivity {
 
         Toast.makeText(this, "Bienvenido", Toast.LENGTH_SHORT).show();
 
+        // Guardar el email del usuario logueado para usarlo en DashboardFragment
+        SharedPreferences prefs = getSharedPreferences("hadoga_prefs", MODE_PRIVATE);
+        prefs.edit().putString("usuario_email", email).apply();
+
         // Redirigir al MainActivity
         Intent intent = new Intent(LoginActivity.this, MainActivity.class);
         startActivity(intent);
@@ -139,6 +143,7 @@ public class LoginActivity extends AppCompatActivity {
 
     // Carga las credenciales si “Recordarme” está activo
     private void loadRememberedUser() {
+
         boolean recordarme = preferences.getBoolean(KEY_REMEMBER, false);
         if (recordarme) {
             String savedEmail = preferences.getString(KEY_EMAIL, "");
