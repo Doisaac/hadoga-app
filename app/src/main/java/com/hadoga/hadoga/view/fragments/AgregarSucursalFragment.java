@@ -1,25 +1,36 @@
 package com.hadoga.hadoga.view.fragments;
 
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Patterns;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.hadoga.hadoga.R;
 import com.hadoga.hadoga.model.database.HadogaDatabase;
 import com.hadoga.hadoga.model.entities.Sucursal;
+import com.hadoga.hadoga.utils.FirebaseService;
+import com.hadoga.hadoga.utils.NetworkUtils;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.Executors;
 
 public class AgregarSucursalFragment extends Fragment {
@@ -122,29 +133,58 @@ public class AgregarSucursalFragment extends Fragment {
             return;
         }
 
-        // Actualización en la base de datos
-        Executors.newSingleThreadExecutor().execute(() -> {
-            try {
-                Sucursal actualizada = new Sucursal(nombre, codigo, depto, direccion, telefono, correo);
-                actualizada.setId(idSucursal);
+        // Crear objeto actualizado
+        Sucursal actualizada = new Sucursal(nombre, codigo, depto, direccion, telefono, correo);
+        actualizada.setId(idSucursal);
 
+        // Verificar conexión
+        if (!NetworkUtils.isNetworkAvailable(requireContext())) {
+            // Sin conexión lo va a guardar localmente como pendiente
+            actualizada.setEstadoSincronizacion("PENDIENTE");
+
+            Executors.newSingleThreadExecutor().execute(() -> {
                 db.sucursalDao().update(actualizada);
-
                 requireActivity().runOnUiThread(() -> {
-                    Toast.makeText(requireContext(), "Sucursal actualizada exitosamente", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(requireContext(), "Sin conexión. Sucursal actualizada localmente (pendiente de sincronizar).", Toast.LENGTH_LONG).show();
                     requireActivity().getSupportFragmentManager().popBackStack();
                 });
-            } catch (Exception e) {
-                requireActivity().runOnUiThread(() -> {
-                    if (e.getMessage() != null && e.getMessage().contains("UNIQUE constraint failed")) {
-                        etCodigoSucursal.setError("El código ya está registrado");
-                        etCodigoSucursal.requestFocus();
-                    } else {
-                        Toast.makeText(requireContext(), "Error al actualizar la sucursal", Toast.LENGTH_SHORT).show();
-                    }
+            });
+            return;
+        }
+
+        // Con conexión actualiza ambos
+        FirebaseFirestore firestore = FirebaseService.getInstance();
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("nombreSucursal", nombre);
+        data.put("codigoSucursal", codigo);
+        data.put("departamento", depto);
+        data.put("direccionCompleta", direccion);
+        data.put("telefono", telefono);
+        data.put("correo", correo);
+        data.put("estado_sincronizacion", "SINCRONIZADO");
+
+        firestore.collection("sucursales")
+                .document(codigo)
+                .set(data)
+                .addOnSuccessListener(aVoid -> {
+                    actualizada.setEstadoSincronizacion("SINCRONIZADO");
+                    Executors.newSingleThreadExecutor().execute(() -> db.sucursalDao().update(actualizada));
+
+                    requireActivity().runOnUiThread(() -> {
+                        Toast.makeText(requireContext(), "Sucursal actualizada y sincronizada correctamente.", Toast.LENGTH_SHORT).show();
+                        requireActivity().getSupportFragmentManager().popBackStack();
+                    });
+                })
+                .addOnFailureListener(e -> {
+                    actualizada.setEstadoSincronizacion("PENDIENTE");
+                    Executors.newSingleThreadExecutor().execute(() -> db.sucursalDao().update(actualizada));
+
+                    requireActivity().runOnUiThread(() -> {
+                        Toast.makeText(requireContext(), "Error al sincronizar. Actualizada localmente.", Toast.LENGTH_LONG).show();
+                        requireActivity().getSupportFragmentManager().popBackStack();
+                    });
                 });
-            }
-        });
     }
 
     private void initUI(View view) {
@@ -221,27 +261,55 @@ public class AgregarSucursalFragment extends Fragment {
             etCorreo.requestFocus();
             return;
         }
-
-        // Insertar a base de datos
+        // Crear objeto sucursal
         Sucursal sucursal = new Sucursal(nombre, codigo, depto, direccion, telefono, correo);
 
-        Executors.newSingleThreadExecutor().execute(() -> {
-            try {
+        // Sin conexión
+        if (!NetworkUtils.isNetworkAvailable(requireContext())) {
+            // Sin conexión → guardar localmente con estado pendiente
+            sucursal.setEstadoSincronizacion("PENDIENTE");
+            Executors.newSingleThreadExecutor().execute(() -> {
                 db.sucursalDao().insert(sucursal);
-                requireActivity().runOnUiThread(() -> Toast.makeText(requireContext(), "Sucursal guardada exitosamente", Toast.LENGTH_SHORT).show());
-                requireActivity().getSupportFragmentManager().popBackStack();
-            } catch (Exception e) {
                 requireActivity().runOnUiThread(() -> {
-                    if (e.getMessage() != null && e.getMessage().contains("UNIQUE constraint failed")) {
-                        etCodigoSucursal.setError("El código ya está registrado");
-                        etCodigoSucursal.requestFocus();
-                    } else {
-                        Toast.makeText(requireContext(), "Error al guardar la sucursal", Toast.LENGTH_SHORT).show();
-                    }
+                    Toast.makeText(requireContext(), "Sin conexión. Sucursal guardada localmente", Toast.LENGTH_LONG).show();
+                    requireActivity().getSupportFragmentManager().popBackStack();
                 });
-            }
-        });
+            });
+            return;
+        }
 
+        // Con conexión → crear también en Firestore
+        FirebaseFirestore firestore = FirebaseService.getInstance();
 
+        Map<String, Object> data = new HashMap<>();
+        data.put("nombreSucursal", nombre);
+        data.put("codigoSucursal", codigo);
+        data.put("departamento", depto);
+        data.put("direccionCompleta", direccion);
+        data.put("telefono", telefono);
+        data.put("correo", correo);
+        data.put("estado_sincronizacion", "SINCRONIZADO");
+
+        firestore.collection("sucursales")
+                .document(codigo)
+                .set(data)
+                .addOnSuccessListener(aVoid -> {
+                    sucursal.setEstadoSincronizacion("SINCRONIZADO");
+                    Executors.newSingleThreadExecutor().execute(() -> db.sucursalDao().insert(sucursal));
+
+                    requireActivity().runOnUiThread(() -> {
+                        Toast.makeText(requireContext(), "Sucursal guardada y sincronizada correctamente.", Toast.LENGTH_SHORT).show();
+                        requireActivity().getSupportFragmentManager().popBackStack();
+                    });
+                })
+                .addOnFailureListener(e -> {
+                    sucursal.setEstadoSincronizacion("PENDIENTE");
+                    Executors.newSingleThreadExecutor().execute(() -> db.sucursalDao().insert(sucursal));
+
+                    requireActivity().runOnUiThread(() -> {
+                        Toast.makeText(requireContext(), "Error al sincronizar. Guardada localmente.", Toast.LENGTH_LONG).show();
+                        requireActivity().getSupportFragmentManager().popBackStack();
+                    });
+                });
     }
 }
