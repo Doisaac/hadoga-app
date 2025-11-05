@@ -14,9 +14,13 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.hadoga.hadoga.R;
 import com.hadoga.hadoga.model.database.HadogaDatabase;
 import com.hadoga.hadoga.model.entities.Sucursal;
+import com.hadoga.hadoga.utils.FirebaseService;
+import com.hadoga.hadoga.utils.NetworkUtils;
 
 import java.util.List;
 import java.util.concurrent.Executors;
@@ -42,27 +46,78 @@ public class ListaSucursalesFragment extends Fragment {
     }
 
     private void cargarSucursales() {
-        Executors.newSingleThreadExecutor().execute(() -> {
-            List<Sucursal> lista = db.sucursalDao().getAllSucursales();
+        // Modo offline muestra lo local
+        if (!NetworkUtils.isNetworkAvailable(requireContext())) {
+            Executors.newSingleThreadExecutor().execute(() -> {
+                List<Sucursal> lista = db.sucursalDao().getAllSucursales();
 
-            requireActivity().runOnUiThread(() -> {
-                containerSucursales.removeAllViews();
-
-                if (lista.isEmpty()) {
-                    TextView txt = new TextView(requireContext());
-                    txt.setText("No hay sucursales registradas.");
-                    txt.setTextColor(getResources().getColor(android.R.color.white));
-                    txt.setPadding(0, 16, 0, 0);
-                    containerSucursales.addView(txt);
-                    return;
-                }
-
-                for (Sucursal sucursal : lista) {
-                    View card = crearCardSucursal(sucursal);
-                    containerSucursales.addView(card);
-                }
+                requireActivity().runOnUiThread(() -> mostrarSucursales(lista));
             });
-        });
+            return;
+        }
+
+        // Modo online lo trae desde Firestore y sincroniza localmente
+        FirebaseFirestore firestore = FirebaseService.getInstance();
+        firestore.collection("sucursales")
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    Executors.newSingleThreadExecutor().execute(() -> {
+                        for (QueryDocumentSnapshot doc : querySnapshot) {
+                            String codigo = doc.getString("codigoSucursal");
+                            Sucursal existente = db.sucursalDao().getSucursalByCodigo(codigo);
+
+                            if (existente == null) {
+                                // No existe localmente, la guardamos
+                                Sucursal nueva = new Sucursal(
+                                        doc.getString("nombreSucursal"),
+                                        codigo,
+                                        doc.getString("departamento"),
+                                        doc.getString("direccionCompleta"),
+                                        doc.getString("telefono"),
+                                        doc.getString("correo")
+                                );
+                                nueva.setEstadoSincronizacion("SINCRONIZADO");
+                                db.sucursalDao().insert(nueva);
+                            } else {
+                                // Ya existe, opcionalmente podrías actualizar si hubo cambios
+                                // (por ahora la dejamos como está)
+                            }
+                        }
+
+                        // Mostrar lista actualizada
+                        List<Sucursal> listaActualizada = db.sucursalDao().getAllSucursales();
+                        requireActivity().runOnUiThread(() -> mostrarSucursales(listaActualizada));
+                    });
+                })
+                .addOnFailureListener(e -> {
+                    Executors.newSingleThreadExecutor().execute(() -> {
+                        List<Sucursal> lista = db.sucursalDao().getAllSucursales();
+                        requireActivity().runOnUiThread(() -> {
+                            Toast.makeText(requireContext(),
+                                    "Error al cargar desde la nube. Mostrando datos locales.",
+                                    Toast.LENGTH_SHORT).show();
+                            mostrarSucursales(lista);
+                        });
+                    });
+                });
+    }
+
+    private void mostrarSucursales(List<Sucursal> lista) {
+        containerSucursales.removeAllViews();
+
+        if (lista.isEmpty()) {
+            TextView txt = new TextView(requireContext());
+            txt.setText("No hay sucursales registradas.");
+            txt.setTextColor(getResources().getColor(android.R.color.white));
+            txt.setPadding(0, 16, 0, 0);
+            containerSucursales.addView(txt);
+            return;
+        }
+
+        for (Sucursal sucursal : lista) {
+            View card = crearCardSucursal(sucursal);
+            containerSucursales.addView(card);
+        }
     }
 
     private View crearCardSucursal(Sucursal sucursal) {
@@ -111,17 +166,52 @@ public class ListaSucursalesFragment extends Fragment {
     }
 
     private void eliminarSucursalDeBD(Sucursal sucursal) {
-        Executors.newSingleThreadExecutor().execute(() -> {
-            db.sucursalDao().delete(sucursal);
+        // Si no hay conexión se marca como eliminada pendiente
+        if (!NetworkUtils.isNetworkAvailable(requireContext())) {
+            Executors.newSingleThreadExecutor().execute(() -> {
+                sucursal.setEstadoSincronizacion("ELIMINADO_PENDIENTE");
+                db.sucursalDao().update(sucursal);
 
-            requireActivity().runOnUiThread(() -> {
-                Toast.makeText(requireContext(),
-                        "Sucursal eliminada correctamente",
-                        Toast.LENGTH_SHORT).show();
-
-                // Recargar la lista
-                cargarSucursales();
+                requireActivity().runOnUiThread(() -> {
+                    Toast.makeText(requireContext(),
+                            "Sin conexión. Eliminación pendiente de sincronizar.",
+                            Toast.LENGTH_LONG).show();
+                    cargarSucursales();
+                });
             });
-        });
+            return;
+        }
+
+        // Si hay conexión se elimina en Firestore y localmente
+        FirebaseFirestore firestore = FirebaseService.getInstance();
+
+        firestore.collection("sucursales")
+                .document(sucursal.getCodigoSucursal())
+                .delete()
+                .addOnSuccessListener(aVoid -> {
+                    Executors.newSingleThreadExecutor().execute(() -> {
+                        db.sucursalDao().delete(sucursal);
+
+                        requireActivity().runOnUiThread(() -> {
+                            Toast.makeText(requireContext(),
+                                    "Sucursal eliminada correctamente.",
+                                    Toast.LENGTH_SHORT).show();
+                            cargarSucursales();
+                        });
+                    });
+                })
+                .addOnFailureListener(e -> {
+                    Executors.newSingleThreadExecutor().execute(() -> {
+                        sucursal.setEstadoSincronizacion("ELIMINADO_PENDIENTE");
+                        db.sucursalDao().update(sucursal);
+
+                        requireActivity().runOnUiThread(() -> {
+                            Toast.makeText(requireContext(),
+                                    "Error al eliminar en la nube. Eliminación pendiente.",
+                                    Toast.LENGTH_LONG).show();
+                            cargarSucursales();
+                        });
+                    });
+                });
     }
 }

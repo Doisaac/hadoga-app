@@ -294,13 +294,22 @@
                 </LinearLayout>
             </LinearLayout>
 
+            <!-- Botón de Sync -->
+            <android.widget.Button
+                android:id="@+id/btnSincronizar"
+                style="@style/HadogaButtonSync"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="72dp"
+                android:text="Sincronizar Datos" />
+
             <!-- Botón de Cerrar Sesión -->
             <android.widget.Button
                 android:id="@+id/btnCerrarSesion"
                 style="@style/HadogaButtonLogout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="25dp"
+                android:layout_marginTop="12dp"
                 android:layout_marginBottom="72dp"
                 android:text="Cerrar Sesión" />
         </LinearLayout>

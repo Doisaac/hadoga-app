@@ -14,6 +14,7 @@ import androidx.fragment.app.Fragment;
 import com.hadoga.hadoga.R;
 import com.hadoga.hadoga.model.database.HadogaDatabase;
 import com.hadoga.hadoga.model.entities.Usuario;
+import com.hadoga.hadoga.utils.FirestoreSyncHelper;
 import com.hadoga.hadoga.view.LoginActivity;
 
 public class DashboardFragment extends Fragment {
@@ -71,6 +72,12 @@ public class DashboardFragment extends Fragment {
         view.findViewById(R.id.cardAgregarSucursal).setOnClickListener(v -> navigateTo(new AgregarSucursalFragment()));
 
         view.findViewById(R.id.cardVerSucursales).setOnClickListener(v -> navigateTo(new ListaSucursalesFragment()));
+
+        // Botón de sincronizar datos
+        view.findViewById(R.id.btnSincronizar).setOnClickListener(v -> {
+            FirestoreSyncHelper syncHelper = new FirestoreSyncHelper(requireContext());
+            syncHelper.sincronizarTodo();
+        });
 
         // Botón de cerrar sesión
         view.findViewById(R.id.btnCerrarSesion).setOnClickListener(v -> {
