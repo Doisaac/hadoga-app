@@ -118,7 +118,7 @@ public class RegisterActivity extends AppCompatActivity {
 
             new Thread(() -> db.usuarioDao().insert(nuevo)).start();
 
-            showSnackbarLikeToast("Sin conexión. Guardado localmente (pendiente de sincronizar).", true);
+            showSnackbarLikeToast("Sin conexión. Guardado localmente (pendiente de sincronizar).", false);
             goToLogin();
             return;
         }
