@@ -33,6 +33,12 @@ public class FirestoreSyncHelper {
         Executors.newSingleThreadExecutor().execute(() -> {
             sincronizarUsuarios();
             sincronizarSucursales();
+
+            // Mostrar mensaje al finalizar
+            android.os.Handler handler = new android.os.Handler(context.getMainLooper());
+            handler.post(() -> {
+                Toast.makeText(context, "Datos sincronizados correctamente.", Toast.LENGTH_LONG).show();
+            });
         });
     }
 
