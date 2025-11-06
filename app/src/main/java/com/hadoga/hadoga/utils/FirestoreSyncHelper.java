@@ -33,20 +33,20 @@ public class FirestoreSyncHelper {
         Toast.makeText(context, "Sincronizando datos...", Toast.LENGTH_SHORT).show();
 
         Executors.newSingleThreadExecutor().execute(() -> {
-            sincronizarUsuarios();
-            sincronizarSucursales();
-            sincronizarDoctores();
-
-            // Mostrar mensaje al finalizar
-            android.os.Handler handler = new android.os.Handler(context.getMainLooper());
-            handler.post(() -> {
-                Toast.makeText(context, "Datos sincronizados correctamente.", Toast.LENGTH_LONG).show();
+            sincronizarUsuarios(() -> {
+                sincronizarSucursales(() -> {
+                    sincronizarDoctores(() -> {
+                        // Al finalizar todo
+                        new android.os.Handler(context.getMainLooper()).post(() ->
+                                Toast.makeText(context, "Datos sincronizados correctamente.", Toast.LENGTH_LONG).show()
+                        );
+                    });
+                });
             });
         });
     }
 
-    private void sincronizarUsuarios() {
-        // Subir pendientes
+    private void sincronizarUsuarios(Runnable onComplete) {
         List<Usuario> pendientes = db.usuarioDao().getPendientes();
         for (Usuario u : pendientes) {
             firestore.collection("usuarios")
@@ -58,7 +58,6 @@ public class FirestoreSyncHelper {
                     });
         }
 
-        // Descargar desde Firestore
         firestore.collection("usuarios")
                 .get()
                 .addOnSuccessListener(query -> Executors.newSingleThreadExecutor().execute(() -> {
@@ -68,19 +67,15 @@ public class FirestoreSyncHelper {
                         Usuario remoto = doc.toObject(Usuario.class);
                         remoto.setEstadoSincronizacion("SINCRONIZADO");
 
-                        if (local == null) {
-                            remoto.setId(0);
-                            db.usuarioDao().insert(remoto);
-                        } else {
-                            remoto.setId(local.getId());
-                            db.usuarioDao().update(remoto);
-                        }
+                        if (local == null) db.usuarioDao().insert(remoto);
+                        else db.usuarioDao().update(remoto);
                     }
-                }));
+                    onComplete.run();
+                }))
+                .addOnFailureListener(e -> onComplete.run());
     }
 
-    private void sincronizarSucursales() {
-        // Subir pendientes
+    private void sincronizarSucursales(Runnable onComplete) {
         List<Sucursal> pendientes = db.sucursalDao().getPendientes();
         for (Sucursal s : pendientes) {
             firestore.collection("sucursales")
@@ -92,18 +87,6 @@ public class FirestoreSyncHelper {
                     });
         }
 
-        // Eliminar pendientes
-        List<Sucursal> eliminadas = db.sucursalDao().getByEstado("ELIMINADO_PENDIENTE");
-        for (Sucursal s : eliminadas) {
-            firestore.collection("sucursales")
-                    .document(s.getCodigoSucursal())
-                    .delete()
-                    .addOnSuccessListener(aVoid ->
-                            Executors.newSingleThreadExecutor().execute(() -> db.sucursalDao().delete(s))
-                    );
-        }
-
-        // Descargar desde Firestore
         firestore.collection("sucursales")
                 .get()
                 .addOnSuccessListener(query -> Executors.newSingleThreadExecutor().execute(() -> {
@@ -113,19 +96,15 @@ public class FirestoreSyncHelper {
                         Sucursal remoto = doc.toObject(Sucursal.class);
                         remoto.setEstadoSincronizacion("SINCRONIZADO");
 
-                        if (local == null) {
-                            remoto.setId(0);
-                            db.sucursalDao().insert(remoto);
-                        } else {
-                            remoto.setId(local.getId());
-                            db.sucursalDao().update(remoto);
-                        }
+                        if (local == null) db.sucursalDao().insert(remoto);
+                        else db.sucursalDao().update(remoto);
                     }
-                }));
+                    onComplete.run();
+                }))
+                .addOnFailureListener(e -> onComplete.run());
     }
 
-    private void sincronizarDoctores() {
-        // Subir pendientes
+    private void sincronizarDoctores(Runnable onComplete) {
         List<Doctor> pendientes = db.doctorDao().getPendientes();
         for (Doctor d : pendientes) {
             firestore.collection("doctores")
@@ -137,18 +116,6 @@ public class FirestoreSyncHelper {
                     });
         }
 
-        // Eliminar pendientes
-        List<Doctor> eliminados = db.doctorDao().getByEstado("ELIMINADO_PENDIENTE");
-        for (Doctor d : eliminados) {
-            firestore.collection("doctores")
-                    .document(d.getNumeroColegiado())
-                    .delete()
-                    .addOnSuccessListener(aVoid ->
-                            Executors.newSingleThreadExecutor().execute(() -> db.doctorDao().eliminar(d))
-                    );
-        }
-
-        // Descargar desde Firestore
         firestore.collection("doctores")
                 .get()
                 .addOnSuccessListener(query -> Executors.newSingleThreadExecutor().execute(() -> {
@@ -158,14 +125,11 @@ public class FirestoreSyncHelper {
                         Doctor remoto = doc.toObject(Doctor.class);
                         remoto.setEstadoSincronizacion("SINCRONIZADO");
 
-                        if (local == null) {
-                            remoto.setId(0);
-                            db.doctorDao().insertar(remoto);
-                        } else {
-                            remoto.setId(local.getId());
-                            db.doctorDao().actualizar(remoto);
-                        }
+                        if (local == null) db.doctorDao().insertar(remoto);
+                        else db.doctorDao().actualizar(remoto);
                     }
-                }));
+                    onComplete.run();
+                }))
+                .addOnFailureListener(e -> onComplete.run());
     }
 }
