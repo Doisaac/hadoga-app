@@ -6,13 +6,15 @@ import androidx.room.ForeignKey;
 import androidx.room.Index;
 import androidx.room.PrimaryKey;
 
+import com.google.firebase.firestore.Exclude;
+
 import java.io.Serializable;
 
 @Entity(
         tableName = "doctor",
         foreignKeys = @ForeignKey(
                 entity = Sucursal.class,
-                parentColumns = "id",
+                parentColumns = "codigo_sucursal",
                 childColumns = "sucursal_asignada",
                 onDelete = ForeignKey.CASCADE
         ),
@@ -22,6 +24,7 @@ import java.io.Serializable;
         }
 )
 public class Doctor implements Serializable {
+    @Exclude
     @PrimaryKey(autoGenerate = true)
     private int id;
 
@@ -44,16 +47,19 @@ public class Doctor implements Serializable {
     private String especialidad;
 
     @ColumnInfo(name = "sucursal_asignada")
-    private int sucursalAsignada;
+    private String sucursalAsignada;
 
     @ColumnInfo(name = "foto_uri")
     // URI o ruta del archivo
     private String fotoUri;
 
+    @ColumnInfo(name = "estado_sincronizacion")
+    private String estadoSincronizacion = "PENDIENTE";
+
     // Constructor
     public Doctor(String nombre, String apellido, String fechaNacimiento,
                   String numeroColegiado, String sexo, String especialidad,
-                  int sucursalAsignada, String fotoUri) {
+                  String sucursalAsignada, String fotoUri) {
         this.nombre = nombre;
         this.apellido = apellido;
         this.fechaNacimiento = fechaNacimiento;
@@ -62,6 +68,9 @@ public class Doctor implements Serializable {
         this.especialidad = especialidad;
         this.sucursalAsignada = sucursalAsignada;
         this.fotoUri = fotoUri;
+    }
+
+    public Doctor() {
     }
 
     // Getters y Setters
@@ -121,11 +130,11 @@ public class Doctor implements Serializable {
         this.especialidad = especialidad;
     }
 
-    public int getSucursalAsignada() {
+    public String getSucursalAsignada() {
         return sucursalAsignada;
     }
 
-    public void setSucursalAsignada(int sucursalAsignada) {
+    public void setSucursalAsignada(String sucursalAsignada) {
         this.sucursalAsignada = sucursalAsignada;
     }
 
@@ -135,5 +144,13 @@ public class Doctor implements Serializable {
 
     public void setFotoUri(String fotoUri) {
         this.fotoUri = fotoUri;
+    }
+
+    public String getEstadoSincronizacion() {
+        return estadoSincronizacion;
+    }
+
+    public void setEstadoSincronizacion(String estadoSincronizacion) {
+        this.estadoSincronizacion = estadoSincronizacion;
     }
 }

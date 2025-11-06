@@ -24,10 +24,13 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.hadoga.hadoga.R;
 import com.hadoga.hadoga.model.database.HadogaDatabase;
 import com.hadoga.hadoga.model.entities.Doctor;
 import com.hadoga.hadoga.model.entities.Sucursal;
+import com.hadoga.hadoga.utils.FirebaseService;
+import com.hadoga.hadoga.utils.NetworkUtils;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -103,7 +106,11 @@ public class AgregarDoctorFragment extends Fragment {
                 for (int i = 0; i < listaSucursales.size(); i++) {
                     Sucursal s = listaSucursales.get(i);
                     adapterSucursal.add(s.getNombreSucursal());
-                    if (s.getId() == d.getSucursalAsignada()) posSeleccionada = i;
+
+                    // Comparar usando el código de sucursal
+                    if (s.getCodigoSucursal().equals(d.getSucursalAsignada())) {
+                        posSeleccionada = i;
+                    }
                 }
 
                 spSucursal.setAdapter(adapterSucursal);
@@ -143,32 +150,67 @@ public class AgregarDoctorFragment extends Fragment {
 
         Executors.newSingleThreadExecutor().execute(() -> {
             List<Sucursal> listaSucursales = db.sucursalDao().getAllSucursales();
-            int idSucursalSeleccionada = -1;
+            String codigoSucursalSeleccionada = null;
             for (Sucursal s : listaSucursales) {
                 if (s.getNombreSucursal().equals(sucursalNombre)) {
-                    idSucursalSeleccionada = s.getId();
+                    codigoSucursalSeleccionada = s.getCodigoSucursal();
                     break;
                 }
             }
 
-            if (idSucursalSeleccionada == -1) {
-                requireActivity().runOnUiThread(() -> Toast.makeText(requireContext(), "Sucursal no encontrada", Toast.LENGTH_SHORT).show());
+            if (codigoSucursalSeleccionada == null) {
+                requireActivity().runOnUiThread(() ->
+                        Toast.makeText(requireContext(), "Sucursal no encontrada", Toast.LENGTH_SHORT).show()
+                );
                 return;
             }
 
-            // Crear objeto actualizado
-            Doctor actualizado = new Doctor(nombre, apellido, fechaNac, colegiado, genero, especialidad, idSucursalSeleccionada, fotoSeleccionadaUri != null ? fotoSeleccionadaUri.toString() : null);
+            Doctor actualizado = new Doctor(
+                    nombre,
+                    apellido,
+                    fechaNac,
+                    colegiado,
+                    genero,
+                    especialidad,
+                    codigoSucursalSeleccionada,  // aquí el cambio importante
+                    fotoSeleccionadaUri != null ? fotoSeleccionadaUri.toString() : null
+            );
             actualizado.setId(idDoctor);
 
-            try {
+            if (!NetworkUtils.isNetworkAvailable(requireContext())) {
+                actualizado.setEstadoSincronizacion("PENDIENTE");
                 db.doctorDao().actualizar(actualizado);
                 requireActivity().runOnUiThread(() -> {
-                    Toast.makeText(requireContext(), "Doctor actualizado exitosamente", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(requireContext(),
+                            "Sin conexión. Actualización guardada localmente (pendiente de sincronizar)",
+                            Toast.LENGTH_LONG).show();
                     requireActivity().getSupportFragmentManager().popBackStack();
                 });
-            } catch (Exception e) {
-                requireActivity().runOnUiThread(() -> Toast.makeText(requireContext(), "Error al actualizar", Toast.LENGTH_SHORT).show());
+                return;
             }
+
+            FirebaseFirestore firestore = FirebaseService.getInstance();
+            firestore.collection("doctores")
+                    .document(actualizado.getNumeroColegiado())
+                    .set(actualizado)
+                    .addOnSuccessListener(aVoid -> Executors.newSingleThreadExecutor().execute(() -> {
+                        actualizado.setEstadoSincronizacion("SINCRONIZADO");
+                        db.doctorDao().actualizar(actualizado);
+                        requireActivity().runOnUiThread(() -> {
+                            Toast.makeText(requireContext(), "Doctor actualizado correctamente", Toast.LENGTH_SHORT).show();
+                            requireActivity().getSupportFragmentManager().popBackStack();
+                        });
+                    }))
+                    .addOnFailureListener(e -> Executors.newSingleThreadExecutor().execute(() -> {
+                        actualizado.setEstadoSincronizacion("PENDIENTE");
+                        db.doctorDao().actualizar(actualizado);
+                        requireActivity().runOnUiThread(() ->
+                                Toast.makeText(requireContext(),
+                                        "Error al actualizar en la nube. Guardado localmente como pendiente.",
+                                        Toast.LENGTH_LONG).show()
+                        );
+                        requireActivity().getSupportFragmentManager().popBackStack();
+                    }));
         });
     }
 
@@ -328,29 +370,64 @@ public class AgregarDoctorFragment extends Fragment {
         // Obtener ID de sucursal según el nombre seleccionado
         Executors.newSingleThreadExecutor().execute(() -> {
             var listaSucursales = db.sucursalDao().getAllSucursales();
-            int idSucursalSeleccionada = -1;
-            for (var s : listaSucursales) {
+            String codigoSucursalSeleccionada = null;
+
+            for (Sucursal s : listaSucursales) {
                 if (s.getNombreSucursal().equals(sucursalNombre)) {
-                    idSucursalSeleccionada = s.getId();
+                    codigoSucursalSeleccionada = s.getCodigoSucursal();
                     break;
                 }
             }
 
-            if (idSucursalSeleccionada == -1) {
-                int finalIdSucursalSeleccionada = idSucursalSeleccionada;
-                requireActivity().runOnUiThread(() -> Toast.makeText(requireContext(), "Sucursal no encontrada (ID: " + finalIdSucursalSeleccionada + ")", Toast.LENGTH_SHORT).show());
+            if (codigoSucursalSeleccionada == null) {
+                requireActivity().runOnUiThread(() ->
+                        Toast.makeText(requireContext(), "Sucursal no encontrada", Toast.LENGTH_SHORT).show()
+                );
                 return;
             }
 
-            // Guardar en DB
-            Doctor nuevoDoctor = new Doctor(nombre, apellido, fechaNac, colegiado, genero, especialidad, idSucursalSeleccionada, fotoSeleccionadaUri != null ? fotoSeleccionadaUri.toString() : null);
-
+            Doctor nuevoDoctor = new Doctor(
+                    nombre, apellido, fechaNac, colegiado, genero,
+                    especialidad, codigoSucursalSeleccionada,
+                    fotoSeleccionadaUri != null ? fotoSeleccionadaUri.toString() : null
+            );
             try {
-                db.doctorDao().insertar(nuevoDoctor);
-                requireActivity().runOnUiThread(() -> {
-                    Toast.makeText(requireContext(), "Doctor agregado exitosamente", Toast.LENGTH_SHORT).show();
-                    requireActivity().getSupportFragmentManager().popBackStack();
-                });
+                // Si no hay conexión
+                if (!NetworkUtils.isNetworkAvailable(requireContext())) {
+                    nuevoDoctor.setEstadoSincronizacion("PENDIENTE");
+
+                    Executors.newSingleThreadExecutor().execute(() -> {
+                        db.doctorDao().insertar(nuevoDoctor);
+                        requireActivity().runOnUiThread(() ->
+                                Toast.makeText(requireContext(), "Doctor guardado localmente (sin conexión)", Toast.LENGTH_LONG).show()
+                        );
+                        requireActivity().getSupportFragmentManager().popBackStack();
+                    });
+                    return;
+                }
+
+                // Si hay conexión, intentar subir a Firestore
+                var firestore = FirebaseService.getInstance();
+                firestore.collection("doctores")
+                        .document(nuevoDoctor.getNumeroColegiado())
+                        .set(nuevoDoctor)
+                        .addOnSuccessListener(aVoid -> Executors.newSingleThreadExecutor().execute(() -> {
+                            nuevoDoctor.setEstadoSincronizacion("SINCRONIZADO");
+                            db.doctorDao().insertar(nuevoDoctor);
+
+                            requireActivity().runOnUiThread(() -> {
+                                Toast.makeText(requireContext(), "Doctor guardado y sincronizado", Toast.LENGTH_SHORT).show();
+                                requireActivity().getSupportFragmentManager().popBackStack();
+                            });
+                        }))
+                        .addOnFailureListener(e -> Executors.newSingleThreadExecutor().execute(() -> {
+                            nuevoDoctor.setEstadoSincronizacion("PENDIENTE");
+                            db.doctorDao().insertar(nuevoDoctor);
+                            requireActivity().runOnUiThread(() ->
+                                    Toast.makeText(requireContext(), "Doctor guardado localmente (pendiente de sincronizar)", Toast.LENGTH_LONG).show()
+                            );
+                            requireActivity().getSupportFragmentManager().popBackStack();
+                        }));
             } catch (Exception e) {
                 requireActivity().runOnUiThread(() -> {
                     if (e.getMessage() != null && e.getMessage().contains("UNIQUE constraint failed")) {

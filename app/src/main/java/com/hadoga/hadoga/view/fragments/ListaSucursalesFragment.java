@@ -46,60 +46,10 @@ public class ListaSucursalesFragment extends Fragment {
     }
 
     private void cargarSucursales() {
-        // Modo offline muestra lo local
-        if (!NetworkUtils.isNetworkAvailable(requireContext())) {
-            Executors.newSingleThreadExecutor().execute(() -> {
-                List<Sucursal> lista = db.sucursalDao().getAllSucursales();
-
-                requireActivity().runOnUiThread(() -> mostrarSucursales(lista));
-            });
-            return;
-        }
-
-        // Modo online lo trae desde Firestore y sincroniza localmente
-        FirebaseFirestore firestore = FirebaseService.getInstance();
-        firestore.collection("sucursales")
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    Executors.newSingleThreadExecutor().execute(() -> {
-                        for (QueryDocumentSnapshot doc : querySnapshot) {
-                            String codigo = doc.getString("codigoSucursal");
-                            Sucursal existente = db.sucursalDao().getSucursalByCodigo(codigo);
-
-                            if (existente == null) {
-                                // No existe localmente, la guardamos
-                                Sucursal nueva = new Sucursal(
-                                        doc.getString("nombreSucursal"),
-                                        codigo,
-                                        doc.getString("departamento"),
-                                        doc.getString("direccionCompleta"),
-                                        doc.getString("telefono"),
-                                        doc.getString("correo")
-                                );
-                                nueva.setEstadoSincronizacion("SINCRONIZADO");
-                                db.sucursalDao().insert(nueva);
-                            } else {
-                                // Ya existe, opcionalmente podrías actualizar si hubo cambios
-                                // (por ahora la dejamos como está)
-                            }
-                        }
-
-                        // Mostrar lista actualizada
-                        List<Sucursal> listaActualizada = db.sucursalDao().getAllSucursales();
-                        requireActivity().runOnUiThread(() -> mostrarSucursales(listaActualizada));
-                    });
-                })
-                .addOnFailureListener(e -> {
-                    Executors.newSingleThreadExecutor().execute(() -> {
-                        List<Sucursal> lista = db.sucursalDao().getAllSucursales();
-                        requireActivity().runOnUiThread(() -> {
-                            Toast.makeText(requireContext(),
-                                    "Error al cargar desde la nube. Mostrando datos locales.",
-                                    Toast.LENGTH_SHORT).show();
-                            mostrarSucursales(lista);
-                        });
-                    });
-                });
+        Executors.newSingleThreadExecutor().execute(() -> {
+            List<Sucursal> lista = db.sucursalDao().getAllSucursales();
+            requireActivity().runOnUiThread(() -> mostrarSucursales(lista));
+        });
     }
 
     private void mostrarSucursales(List<Sucursal> lista) {
@@ -155,14 +105,29 @@ public class ListaSucursalesFragment extends Fragment {
     }
 
     private void borrarSucursal(Sucursal sucursal) {
-        new AlertDialog.Builder(requireContext())
-                .setTitle("Confirmar eliminación")
-                .setMessage("¿Seguro que deseas eliminar la sucursal \"" + sucursal.getNombreSucursal() + "\"?")
-                .setPositiveButton("Eliminar", (dialog, which) -> {
-                    eliminarSucursalDeBD(sucursal);
-                })
-                .setNegativeButton("Cancelar", (dialog, which) -> dialog.dismiss())
-                .show();
+        Executors.newSingleThreadExecutor().execute(() -> {
+            // Verificar si existen doctores asignados a la sucursal
+            var doctoresAsociados = db.doctorDao().getDoctoresDeSucursal(sucursal.getCodigoSucursal());
+
+            requireActivity().runOnUiThread(() -> {
+                if (!doctoresAsociados.isEmpty()) {
+                    // Si hay doctores, mostrar aviso
+                    Toast.makeText(requireContext(),
+                            "Primero elimina los doctores asociados a esta sucursal antes de borrarla.",
+                            Toast.LENGTH_LONG).show();
+                } else {
+                    // Si no hay doctores, continuar con el diálogo de confirmación normal
+                    new AlertDialog.Builder(requireContext())
+                            .setTitle("Confirmar eliminación")
+                            .setMessage("¿Seguro que deseas eliminar la sucursal \"" + sucursal.getNombreSucursal() + "\"?")
+                            .setPositiveButton("Eliminar", (dialog, which) -> {
+                                eliminarSucursalDeBD(sucursal);
+                            })
+                            .setNegativeButton("Cancelar", (dialog, which) -> dialog.dismiss())
+                            .show();
+                }
+            });
+        });
     }
 
     private void eliminarSucursalDeBD(Sucursal sucursal) {

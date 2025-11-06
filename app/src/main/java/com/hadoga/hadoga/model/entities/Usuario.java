@@ -33,6 +33,9 @@ public class Usuario {
         this.contrasena = contrasena;
     }
 
+    public Usuario() {
+    }
+
     // Getters y setters del usuario
     public int getId() {
         return id;

@@ -29,4 +29,16 @@ public interface DoctorDao {
 
     @Query("SELECT * FROM doctor WHERE sucursal_asignada = :idSucursal")
     List<Doctor> obtenerPorSucursal(int idSucursal);
+
+    @Query("SELECT * FROM doctor WHERE estado_sincronizacion = :estado")
+    List<Doctor> getByEstado(String estado);
+
+    @Query("SELECT * FROM doctor WHERE estado_sincronizacion = 'PENDIENTE'")
+    List<Doctor> getPendientes();
+
+    @Query("SELECT * FROM doctor WHERE numero_colegiado = :colegiado LIMIT 1")
+    Doctor getDoctorByColegiado(String colegiado);
+
+    @Query("SELECT * FROM doctor WHERE sucursal_asignada = :codigoSucursal")
+    List<Doctor> getDoctoresDeSucursal(String codigoSucursal);
 }

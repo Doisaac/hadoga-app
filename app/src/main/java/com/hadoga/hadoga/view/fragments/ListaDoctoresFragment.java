@@ -18,10 +18,14 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.hadoga.hadoga.R;
 import com.hadoga.hadoga.model.database.HadogaDatabase;
 import com.hadoga.hadoga.model.entities.Doctor;
 import com.hadoga.hadoga.model.entities.Sucursal;
+import com.hadoga.hadoga.utils.FirebaseService;
+import com.hadoga.hadoga.utils.NetworkUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -85,37 +89,36 @@ public class ListaDoctoresFragment extends Fragment {
     private void cargarDoctores() {
         Executors.newSingleThreadExecutor().execute(() -> {
             listaDoctores = db.doctorDao().obtenerTodos();
-
-            requireActivity().runOnUiThread(() -> {
-                mostrarDoctores(listaDoctores);
-            });
+            requireActivity().runOnUiThread(() -> mostrarDoctores(listaDoctores));
         });
     }
 
     private void filtrarDoctoresPorSucursal() {
-        String sucursalSeleccionada = (String) spFiltroSucursal.getSelectedItem();
+        String nombreSucursalSeleccionada = (String) spFiltroSucursal.getSelectedItem();
 
-        if (sucursalSeleccionada == null || sucursalSeleccionada.equals("Todas las sucursales")) {
+        if (nombreSucursalSeleccionada == null || nombreSucursalSeleccionada.equals("Todas las sucursales")) {
             mostrarDoctores(listaDoctores);
             return;
         }
 
-        int idSucursalSeleccionada = -1;
+        // Buscar el código de sucursal según el nombre seleccionado
+        String codigoSucursalSeleccionada = null;
         for (Sucursal s : listaSucursales) {
-            if (s.getNombreSucursal().equals(sucursalSeleccionada)) {
-                idSucursalSeleccionada = s.getId();
+            if (s.getNombreSucursal().equals(nombreSucursalSeleccionada)) {
+                codigoSucursalSeleccionada = s.getCodigoSucursal();
                 break;
             }
         }
 
-        if (idSucursalSeleccionada == -1) {
+        if (codigoSucursalSeleccionada == null) {
             mostrarDoctores(new ArrayList<>());
             return;
         }
 
+        // Filtrar doctores según el código de sucursal
         List<Doctor> filtrados = new ArrayList<>();
         for (Doctor d : listaDoctores) {
-            if (d.getSucursalAsignada() == idSucursalSeleccionada) {
+            if (d.getSucursalAsignada() != null && d.getSucursalAsignada().equals(codigoSucursalSeleccionada)) {
                 filtrados.add(d);
             }
         }
@@ -173,9 +176,9 @@ public class ListaDoctoresFragment extends Fragment {
         return cardView;
     }
 
-    private String obtenerNombreSucursal(int idSucursal) {
+    private String obtenerNombreSucursal(String codigoSucursal) {
         for (Sucursal s : listaSucursales) {
-            if (s.getId() == idSucursal) {
+            if (s.getCodigoSucursal() != null && s.getCodigoSucursal().equals(codigoSucursal)) {
                 return s.getNombreSucursal();
             }
         }
@@ -198,15 +201,44 @@ public class ListaDoctoresFragment extends Fragment {
     }
 
     private void eliminarDoctorDeBD(Doctor doctor) {
-        Executors.newSingleThreadExecutor().execute(() -> {
-            db.doctorDao().eliminar(doctor);
-
-            requireActivity().runOnUiThread(() -> {
-                Toast.makeText(requireContext(), "Doctor eliminado correctamente", Toast.LENGTH_SHORT).show();
-
-                // Recargar lista
-                cargarDoctores();
+        // Sin conexión se marca como pendiente de eliminación
+        if (!NetworkUtils.isNetworkAvailable(requireContext())) {
+            Executors.newSingleThreadExecutor().execute(() -> {
+                doctor.setEstadoSincronizacion("ELIMINADO_PENDIENTE");
+                db.doctorDao().actualizar(doctor);
+                requireActivity().runOnUiThread(() -> {
+                    Toast.makeText(requireContext(),
+                            "Sin conexión. Eliminación pendiente de sincronizar.",
+                            Toast.LENGTH_LONG).show();
+                    cargarDoctores();
+                });
             });
-        });
+            return;
+        }
+
+        // Con conexión se elimina en Firestore y local
+        FirebaseFirestore firestore = FirebaseService.getInstance();
+        firestore.collection("doctores")
+                .document(doctor.getNumeroColegiado())
+                .delete()
+                .addOnSuccessListener(aVoid -> Executors.newSingleThreadExecutor().execute(() -> {
+                    db.doctorDao().eliminar(doctor);
+                    requireActivity().runOnUiThread(() -> {
+                        Toast.makeText(requireContext(),
+                                "Doctor eliminado correctamente.",
+                                Toast.LENGTH_SHORT).show();
+                        cargarDoctores();
+                    });
+                }))
+                .addOnFailureListener(e -> Executors.newSingleThreadExecutor().execute(() -> {
+                    doctor.setEstadoSincronizacion("ELIMINADO_PENDIENTE");
+                    db.doctorDao().actualizar(doctor);
+                    requireActivity().runOnUiThread(() -> {
+                        Toast.makeText(requireContext(),
+                                "Error al eliminar en la nube. Eliminación pendiente.",
+                                Toast.LENGTH_LONG).show();
+                        cargarDoctores();
+                    });
+                }));
     }
 }
