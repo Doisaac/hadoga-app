@@ -12,11 +12,14 @@ import java.io.Serializable;
         tableName = "paciente",
         foreignKeys = @ForeignKey(
                 entity = Sucursal.class,
-                parentColumns = "id",
-                childColumns = "sucursal_id",
+                parentColumns = "codigo_sucursal",
+                childColumns = "codigo_sucursal_asignada",
                 onDelete = ForeignKey.CASCADE
         ),
-        indices = {@Index("sucursal_id")}
+        indices = {
+                @Index(value = "codigo_sucursal_asignada"),
+                @Index(value = "correo_electronico", unique = true)
+        }
 )
 public class Paciente implements Serializable {
 
@@ -74,18 +77,23 @@ public class Paciente implements Serializable {
     @ColumnInfo(name = "tiroides")
     private boolean tiroides;
 
-    @ColumnInfo(name = "sucursal_id")
-    private int sucursalId;
+    @ColumnInfo(name = "codigo_sucursal_asignada")
+    private String codigoSucursalAsignada;
 
     @ColumnInfo(name = "foto_uri")
     private String fotoUri;
 
+    @ColumnInfo(name = "estado_sincronizacion")
+    private String estadoSincronizacion = "PENDIENTE";
+
     // Constructor principal
     public Paciente(String nombre, String apellido, String fechaNacimiento, String sexo,
-                    String correoElectronico, String numeroTelefono, String direccion, String observaciones,
-                    boolean diabetes, boolean anemia, boolean gastritis, boolean hipertensionHta,
-                    boolean hemorragias, boolean asma, boolean trastornosCardiacos,
-                    boolean convulsiones, boolean tiroides, int sucursalId, String fotoUri) {
+                    String correoElectronico, String numeroTelefono, String direccion,
+                    String observaciones, boolean diabetes, boolean anemia, boolean gastritis,
+                    boolean hipertensionHta, boolean hemorragias, boolean asma,
+                    boolean trastornosCardiacos, boolean convulsiones, boolean tiroides,
+                    String codigoSucursalAsignada, String fotoUri) {
+
         this.nombre = nombre;
         this.apellido = apellido;
         this.fechaNacimiento = fechaNacimiento;
@@ -103,7 +111,7 @@ public class Paciente implements Serializable {
         this.trastornosCardiacos = trastornosCardiacos;
         this.convulsiones = convulsiones;
         this.tiroides = tiroides;
-        this.sucursalId = sucursalId;
+        this.codigoSucursalAsignada = codigoSucursalAsignada;
         this.fotoUri = fotoUri;
     }
 
@@ -256,12 +264,20 @@ public class Paciente implements Serializable {
         this.tiroides = tiroides;
     }
 
-    public int getSucursalId() {
-        return sucursalId;
+    public String getCodigoSucursalAsignada() {
+        return codigoSucursalAsignada;
     }
 
-    public void setSucursalId(int sucursalId) {
-        this.sucursalId = sucursalId;
+    public void setCodigoSucursalAsignada(String codigoSucursalAsignada) {
+        this.codigoSucursalAsignada = codigoSucursalAsignada;
+    }
+
+    public String getEstadoSincronizacion() {
+        return estadoSincronizacion;
+    }
+
+    public void setEstadoSincronizacion(String estadoSincronizacion) {
+        this.estadoSincronizacion = estadoSincronizacion;
     }
 
     public String getFotoUri() {

@@ -113,8 +113,8 @@ public class NuevaCitaFragment extends Fragment {
 
                         // Solo cargar si realmente se elige una sucursal valida
                         if (position > 0) {
-                            int sucId = sucursales.get(position - 1).getId();
-                            cargarPacientesPorSucursal(sucId);
+                            String codigoSucursal = sucursales.get(position - 1).getCodigoSucursal();
+                            cargarPacientesPorSucursal(codigoSucursal);
                         }
                     }
 
@@ -135,14 +135,14 @@ public class NuevaCitaFragment extends Fragment {
         btnCrearCita.setOnClickListener(v -> guardarCita());
     }
 
-    private void cargarPacientesPorSucursal(int sucursalId) {
-        cargarPacientesPorSucursal(sucursalId, -1); // -1 indica “no hay paciente preseleccionado”
+    private void cargarPacientesPorSucursal(String codigoSucursal) {
+        cargarPacientesPorSucursal(codigoSucursal, -1);
     }
 
     // Sobrecarga del método: permite cargar pacientes y, opcionalmente, seleccionar uno específico
-    private void cargarPacientesPorSucursal(int sucursalId, int pacienteSeleccionadoId) {
+    private void cargarPacientesPorSucursal(String codigoSucursal, int pacienteSeleccionadoId) {
         Executors.newSingleThreadExecutor().execute(() -> {
-            pacientes = db.pacienteDao().obtenerPorSucursal(sucursalId);
+            pacientes = db.pacienteDao().obtenerPorSucursal(codigoSucursal);
             requireActivity().runOnUiThread(() -> {
                 ArrayAdapter<String> ad = new ArrayAdapter<String>(requireContext(), android.R.layout.simple_spinner_item) {
                     @Override
@@ -243,7 +243,7 @@ public class NuevaCitaFragment extends Fragment {
             return;
         }
 
-        int sucursalId = sucursales.get(posSuc - 1).getId();
+        String codigoSucursal = sucursales.get(posSuc - 1).getCodigoSucursal();
         int pacienteId = pacientes.get(posPac - 1).getId();
 
 
@@ -270,7 +270,7 @@ public class NuevaCitaFragment extends Fragment {
                     return;
                 }
 
-                int conflictos = db.citaDao().contarSolapadas(sucursalId, desde, hasta);
+                int conflictos = db.citaDao().contarSolapadas(codigoSucursal, desde, hasta);
                 if (conflictos > 0) {
                     requireActivity().runOnUiThread(() ->
                             Toast.makeText(requireContext(),
@@ -281,7 +281,7 @@ public class NuevaCitaFragment extends Fragment {
             }
 
             // Insertar o actualizar si estuviera en modo edición
-            Cita nueva = new Cita(sucursalId, pacienteId, fechaHora, motivo, notas, estadoSel);
+            Cita nueva = new Cita(codigoSucursal, pacienteId, fechaHora, motivo, notas, estadoSel);
 
             try {
                 db.citaDao().insertar(nueva);
@@ -323,14 +323,14 @@ public class NuevaCitaFragment extends Fragment {
 
                 for (int i = 0; i < sucursales.size(); i++) {
                     adSuc.add(sucursales.get(i).getNombreSucursal());
-                    if (sucursales.get(i).getId() == c.getSucursalId()) posSuc = i + 1;
+                    if (sucursales.get(i).getCodigoSucursal().equals(c.getCodigoSucursalAsignada())) posSuc = i + 1;
                 }
 
                 spSucursal.setAdapter(adSuc);
                 spSucursal.setSelection(posSuc);
 
-                // --- Pacientes de esa sucursal ---
-                cargarPacientesPorSucursal(c.getSucursalId(), c.getPacienteId());
+                // Pacientes de esa sucursal
+                cargarPacientesPorSucursal(c.getCodigoSucursalAsignada(), c.getPacienteId());
 
                 // Listener
                 spSucursal.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
@@ -343,8 +343,8 @@ public class NuevaCitaFragment extends Fragment {
                         }
 
                         if (position > 0) {
-                            int sucId = sucursales.get(position - 1).getId();
-                            cargarPacientesPorSucursal(sucId);
+                            String codigoSucursal = sucursales.get(position - 1).getCodigoSucursal();
+                            cargarPacientesPorSucursal(codigoSucursal);
                         } else {
                             ArrayAdapter<String> vacio = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item);
                             vacio.add("Selecciona un paciente");
@@ -394,7 +394,7 @@ public class NuevaCitaFragment extends Fragment {
         }
 
         // Obtener IDs considerando el placeholder
-        int sucursalId = sucursales.get(spSucursal.getSelectedItemPosition() - 1).getId();
+        String codigoSucursal = sucursales.get(spSucursal.getSelectedItemPosition() - 1).getCodigoSucursal();
         int pacienteId = pacientes.get(spPaciente.getSelectedItemPosition() - 1).getId();
 
         Executors.newSingleThreadExecutor().execute(() -> {
@@ -410,7 +410,7 @@ public class NuevaCitaFragment extends Fragment {
                     String desde = sdf.format(new Date(t - rango30));
                     String hasta = sdf.format(new Date(t + rango30));
 
-                    int conflictos = db.citaDao().contarSolapadas(sucursalId, desde, hasta);
+                    int conflictos = db.citaDao().contarSolapadasExcluyendo(idCita, codigoSucursal, desde, hasta);
                     if (conflictos > 0) {
                         requireActivity().runOnUiThread(() ->
                                 Toast.makeText(requireContext(),
@@ -426,7 +426,7 @@ public class NuevaCitaFragment extends Fragment {
             }
 
             // Crear objeto actualizado
-            Cita act = new Cita(sucursalId, pacienteId, fechaHora, motivo, notas, estadoSel);
+            Cita act = new Cita(codigoSucursal, pacienteId, fechaHora, motivo, notas, estadoSel);
             act.setId(idCita);
 
             try {

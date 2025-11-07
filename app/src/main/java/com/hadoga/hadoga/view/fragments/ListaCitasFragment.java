@@ -56,8 +56,8 @@ public class ListaCitasFragment extends Fragment {
                 if (position == 0) {
                     cargarCitas(null);
                 } else {
-                    int sucursalId = listaSucursales.get(position - 1).getId();
-                    cargarCitas(sucursalId);
+                    String codigoSucursal = listaSucursales.get(position - 1).getCodigoSucursal();
+                    cargarCitas(codigoSucursal);
                 }
             }
 
@@ -84,12 +84,12 @@ public class ListaCitasFragment extends Fragment {
         });
     }
 
-    private void cargarCitas(@Nullable Integer sucursalId) {
+    private void cargarCitas(@Nullable String codigoSucursal) {
         Executors.newSingleThreadExecutor().execute(() -> {
-            if (sucursalId == null) {
+            if (codigoSucursal == null) {
                 listaCitas = db.citaDao().obtenerTodas();
             } else {
-                listaCitas = db.citaDao().obtenerPorSucursal(sucursalId);
+                listaCitas = db.citaDao().obtenerPorSucursal(codigoSucursal);
             }
 
             requireActivity().runOnUiThread(this::mostrarCitas);
@@ -133,9 +133,10 @@ public class ListaCitasFragment extends Fragment {
         tvNombre.setText(nombreCompleto);
 
         // Sucursal
+        // Buscar sucursal correspondiente a la cita
         Sucursal sucursal = null;
         for (Sucursal s : listaSucursales) {
-            if (s.getId() == cita.getSucursalId()) {
+            if (s.getCodigoSucursal().equals(cita.getCodigoSucursalAsignada())) {
                 sucursal = s;
                 break;
             }

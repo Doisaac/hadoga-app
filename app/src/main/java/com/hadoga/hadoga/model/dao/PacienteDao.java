@@ -27,9 +27,18 @@ public interface PacienteDao {
     @Query("DELETE FROM paciente")
     void eliminarTodos();
 
-    @Query("SELECT * FROM paciente WHERE sucursal_id = :sucursalId ORDER BY id DESC")
-    List<Paciente> obtenerPorSucursal(int sucursalId);
-
     @Query("SELECT * FROM paciente WHERE id = :id LIMIT 1")
     Paciente obtenerPorId(int id);
+
+    @Query("SELECT * FROM paciente WHERE codigo_sucursal_asignada = :codigoSucursal ORDER BY id DESC")
+    List<Paciente> obtenerPorSucursal(String codigoSucursal);
+
+    @Query("SELECT * FROM paciente WHERE correo_electronico = :correo LIMIT 1")
+    Paciente obtenerPorCorreo(String correo);
+
+    @Query("SELECT * FROM paciente WHERE estado_sincronizacion = 'PENDIENTE'")
+    List<Paciente> getPendientes();
+
+    @Query("SELECT * FROM paciente WHERE estado_sincronizacion = 'ELIMINADO_PENDIENTE'")
+    List<Paciente> getEliminadosPendientes();
 }

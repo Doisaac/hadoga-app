@@ -197,20 +197,28 @@ public class AgregarPacienteFragment extends Fragment {
 
         Executors.newSingleThreadExecutor().execute(() -> {
             List<Sucursal> listaSucursales = db.sucursalDao().getAllSucursales();
-            int idSucursalSeleccionada = -1;
+            String codigoSucursalSeleccionada = null;
             for (Sucursal s : listaSucursales) {
                 if (s.getNombreSucursal().equals(sucursalNombre)) {
-                    idSucursalSeleccionada = s.getId();
+                    codigoSucursalSeleccionada = s.getCodigoSucursal();
                     break;
                 }
             }
 
-            if (idSucursalSeleccionada == -1) {
-                requireActivity().runOnUiThread(() -> Toast.makeText(requireContext(), "Sucursal no encontrada", Toast.LENGTH_SHORT).show());
+            if (codigoSucursalSeleccionada == null) {
+                requireActivity().runOnUiThread(() ->
+                        Toast.makeText(requireContext(), "Sucursal no encontrada", Toast.LENGTH_SHORT).show());
                 return;
             }
 
-            Paciente nuevo = new Paciente(nombre, apellido, fechaNac, genero, correo, telefono, direccion, observaciones, cbDiabetes.isChecked(), cbAnemia.isChecked(), cbGastritis.isChecked(), cbHipertension.isChecked(), cbHemorragias.isChecked(), cbAsma.isChecked(), cbTrastornosCardiacos.isChecked(), cbConvulsiones.isChecked(), cbTiroides.isChecked(), idSucursalSeleccionada, fotoSeleccionadaUri != null ? fotoSeleccionadaUri.toString() : null);
+            Paciente nuevo = new Paciente(
+                    nombre, apellido, fechaNac, genero, correo, telefono,
+                    direccion, observaciones, cbDiabetes.isChecked(), cbAnemia.isChecked(),
+                    cbGastritis.isChecked(), cbHipertension.isChecked(), cbHemorragias.isChecked(),
+                    cbAsma.isChecked(), cbTrastornosCardiacos.isChecked(), cbConvulsiones.isChecked(),
+                    cbTiroides.isChecked(), codigoSucursalSeleccionada,
+                    fotoSeleccionadaUri != null ? fotoSeleccionadaUri.toString() : null
+            );
 
             try {
                 db.pacienteDao().insertar(nuevo);
@@ -271,7 +279,7 @@ public class AgregarPacienteFragment extends Fragment {
                 for (int i = 0; i < lista.size(); i++) {
                     Sucursal s = lista.get(i);
                     adapter.add(s.getNombreSucursal());
-                    if (s.getId() == p.getSucursalId()) posSel = i + 1; // +1 porque el primer item es el placeholder
+                    if (s.getCodigoSucursal().equals(p.getCodigoSucursalAsignada())) posSel = i + 1;
                 }
 
                 spSucursal.setAdapter(adapter);
@@ -307,20 +315,28 @@ public class AgregarPacienteFragment extends Fragment {
 
         Executors.newSingleThreadExecutor().execute(() -> {
             List<Sucursal> listaSucursales = db.sucursalDao().getAllSucursales();
-            int idSucursalSeleccionada = -1;
+            String codigoSucursalSeleccionada = null;
             for (Sucursal s : listaSucursales) {
                 if (s.getNombreSucursal().equals(sucursalNombre)) {
-                    idSucursalSeleccionada = s.getId();
+                    codigoSucursalSeleccionada = s.getCodigoSucursal();
                     break;
                 }
             }
 
-            if (idSucursalSeleccionada == -1) {
-                requireActivity().runOnUiThread(() -> Toast.makeText(requireContext(), "Sucursal no encontrada", Toast.LENGTH_SHORT).show());
+            if (codigoSucursalSeleccionada == null) {
+                requireActivity().runOnUiThread(() ->
+                        Toast.makeText(requireContext(), "Sucursal no encontrada", Toast.LENGTH_SHORT).show());
                 return;
             }
 
-            Paciente actualizado = new Paciente(nombre, apellido, fechaNac, genero, correo, telefono, direccion, observaciones, cbDiabetes.isChecked(), cbAnemia.isChecked(), cbGastritis.isChecked(), cbHipertension.isChecked(), cbHemorragias.isChecked(), cbAsma.isChecked(), cbTrastornosCardiacos.isChecked(), cbConvulsiones.isChecked(), cbTiroides.isChecked(), idSucursalSeleccionada, fotoSeleccionadaUri != null ? fotoSeleccionadaUri.toString() : null);
+            Paciente actualizado = new Paciente(
+                    nombre, apellido, fechaNac, genero, correo, telefono,
+                    direccion, observaciones, cbDiabetes.isChecked(), cbAnemia.isChecked(),
+                    cbGastritis.isChecked(), cbHipertension.isChecked(), cbHemorragias.isChecked(),
+                    cbAsma.isChecked(), cbTrastornosCardiacos.isChecked(), cbConvulsiones.isChecked(),
+                    cbTiroides.isChecked(), codigoSucursalSeleccionada,
+                    fotoSeleccionadaUri != null ? fotoSeleccionadaUri.toString() : null
+            );
             actualizado.setId(idPaciente);
 
             try {

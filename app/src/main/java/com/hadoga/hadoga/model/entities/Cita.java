@@ -15,25 +15,28 @@ import java.io.Serializable;
         foreignKeys = {
                 @ForeignKey(
                         entity = Sucursal.class,
-                        parentColumns = "id",
-                        childColumns = "sucursal_id",
-                        onDelete = CASCADE
+                        parentColumns = "codigo_sucursal",
+                        childColumns = "codigo_sucursal_asignada",
+                        onDelete = ForeignKey.CASCADE
                 ),
                 @ForeignKey(
                         entity = Paciente.class,
                         parentColumns = "id",
                         childColumns = "paciente_id",
-                        onDelete = CASCADE
+                        onDelete = ForeignKey.CASCADE
                 )
         },
-        indices = {@Index("sucursal_id"), @Index("paciente_id")}
+        indices = {
+                @Index("codigo_sucursal_asignada"),
+                @Index("paciente_id")
+        }
 )
 public class Cita implements Serializable {
     @PrimaryKey(autoGenerate = true)
     private int id;
 
-    @ColumnInfo(name = "sucursal_id")
-    private int sucursalId;
+    @ColumnInfo(name = "codigo_sucursal_asignada")
+    private String codigoSucursalAsignada;
 
     @ColumnInfo(name = "paciente_id")
     private int pacienteId;
@@ -51,9 +54,9 @@ public class Cita implements Serializable {
     private String estado;
 
     // Constructor principal
-    public Cita(int sucursalId, int pacienteId, String fechaHora,
+    public Cita(String codigoSucursalAsignada, int pacienteId, String fechaHora,
                 String motivo, String notas, String estado) {
-        this.sucursalId = sucursalId;
+        this.codigoSucursalAsignada = codigoSucursalAsignada;
         this.pacienteId = pacienteId;
         this.fechaHora = fechaHora;
         this.motivo = motivo;
@@ -73,12 +76,12 @@ public class Cita implements Serializable {
         this.id = id;
     }
 
-    public int getSucursalId() {
-        return sucursalId;
+    public String getCodigoSucursalAsignada() {
+        return codigoSucursalAsignada;
     }
 
-    public void setSucursalId(int sucursalId) {
-        this.sucursalId = sucursalId;
+    public void setCodigoSucursalAsignada(String codigoSucursalAsignada) {
+        this.codigoSucursalAsignada = codigoSucursalAsignada;
     }
 
     public int getPacienteId() {

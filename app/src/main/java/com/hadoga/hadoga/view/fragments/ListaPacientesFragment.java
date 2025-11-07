@@ -58,8 +58,8 @@ public class ListaPacientesFragment extends Fragment {
                 if (position == 0) {
                     cargarPacientes(null);
                 } else {
-                    int sucursalId = listaSucursales.get(position - 1).getId();
-                    cargarPacientes(sucursalId);
+                    String codigoSucursal = listaSucursales.get(position - 1).getCodigoSucursal();
+                    cargarPacientes(codigoSucursal);
                 }
             }
 
@@ -85,15 +85,15 @@ public class ListaPacientesFragment extends Fragment {
         });
     }
 
-    private void cargarPacientes(@Nullable Integer sucursalId) {
+    private void cargarPacientes(@Nullable String codigoSucursal) {
         Executors.newSingleThreadExecutor().execute(() -> {
-            if (sucursalId == null) {
+            if (codigoSucursal == null) {
                 listaPacientes = db.pacienteDao().obtenerTodos();
             } else {
-                listaPacientes = db.pacienteDao().obtenerPorSucursal(sucursalId);
+                listaPacientes = db.pacienteDao().obtenerPorSucursal(codigoSucursal);
             }
 
-            requireActivity().runOnUiThread(() -> mostrarPacientes());
+            requireActivity().runOnUiThread(this::mostrarPacientes);
         });
     }
 
@@ -130,7 +130,7 @@ public class ListaPacientesFragment extends Fragment {
         // Mostrar nombre de la sucursal
         Sucursal sucursal = null;
         for (Sucursal s : listaSucursales) {
-            if (s.getId() == paciente.getSucursalId()) {
+            if (s.getCodigoSucursal().equals(paciente.getCodigoSucursalAsignada())) {
                 sucursal = s;
                 break;
             }

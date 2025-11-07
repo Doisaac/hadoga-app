@@ -27,8 +27,8 @@ public interface CitaDao {
     @Query("SELECT * FROM cita ORDER BY fecha_hora DESC")
     List<Cita> obtenerTodas();
 
-    @Query("SELECT * FROM cita WHERE sucursal_id = :sucursalId ORDER BY fecha_hora DESC")
-    List<Cita> obtenerPorSucursal(int sucursalId);
+    @Query("SELECT * FROM cita WHERE codigo_sucursal_asignada = :codigoSucursal ORDER BY fecha_hora DESC")
+    List<Cita> obtenerPorSucursal(String codigoSucursal);
 
     @Query("SELECT * FROM cita WHERE paciente_id = :pacienteId ORDER BY fecha_hora DESC")
     List<Cita> obtenerPorPaciente(int pacienteId);
@@ -46,8 +46,15 @@ public interface CitaDao {
     int contarPorEstado(String estado);
 
     @Query("SELECT COUNT(*) FROM cita " +
-            "WHERE sucursal_id = :sucursalId " +
+            "WHERE codigo_sucursal_asignada = :codigoSucursal " +
             "AND estado = 'pendiente' " +
             "AND fecha_hora BETWEEN :desde AND :hasta")
-    int contarSolapadas(int sucursalId, String desde, String hasta);
+    int contarSolapadas(String codigoSucursal, String desde, String hasta);
+
+    @Query("SELECT COUNT(*) FROM cita " +
+            "WHERE codigo_sucursal_asignada = :codigoSucursal " +
+            "AND estado = 'pendiente' " +
+            "AND id != :idCita " +
+            "AND fecha_hora BETWEEN :desde AND :hasta")
+    int contarSolapadasExcluyendo(int idCita, String codigoSucursal, String desde, String hasta);
 }
