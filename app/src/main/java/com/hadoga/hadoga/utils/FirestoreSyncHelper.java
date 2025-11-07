@@ -1,10 +1,20 @@
 package com.hadoga.hadoga.utils;
 
 import android.content.Context;
+import android.graphics.drawable.GradientDrawable;
+import android.view.Gravity;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.core.content.ContextCompat;
 
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.hadoga.hadoga.R;
 import com.hadoga.hadoga.model.database.HadogaDatabase;
 import com.hadoga.hadoga.model.entities.Cita;
 import com.hadoga.hadoga.model.entities.Doctor;
@@ -30,11 +40,11 @@ public class FirestoreSyncHelper {
 
     public void sincronizarTodo() {
         if (!NetworkUtils.isNetworkAvailable(context)) {
-            Toast.makeText(context, "Sin conexión. No se puede sincronizar.", Toast.LENGTH_SHORT).show();
+            showSnackbarLikeToast("Sin conexión. No se puede sincronizar.", true);
             return;
         }
 
-        Toast.makeText(context, "Sincronizando datos...", Toast.LENGTH_SHORT).show();
+        showSnackbarLikeToast("Sincronizando datos...", false);
 
         Executors.newSingleThreadExecutor().execute(() -> {
             sincronizarUsuarios(() -> {
@@ -43,7 +53,7 @@ public class FirestoreSyncHelper {
                         sincronizarPacientes(() -> {
                             sincronizarCitas(() -> {
                                 new android.os.Handler(context.getMainLooper()).post(() ->
-                                        Toast.makeText(context, "Datos sincronizados correctamente.", Toast.LENGTH_LONG).show()
+                                        showSnackbarLikeToast("Datos sincronizados correctamente.", false)
                                 );
                             });
                         });
@@ -237,5 +247,32 @@ public class FirestoreSyncHelper {
                     onComplete.run();
                 }))
                 .addOnFailureListener(e -> onComplete.run());
+    }
+    private void showSnackbarLikeToast(String message, boolean isError) {
+        LayoutInflater inflater = LayoutInflater.from(context);
+        View layout = inflater.inflate(R.layout.custom_toast, null);
+
+        LinearLayout container = layout.findViewById(R.id.toast_container);
+        ImageView icon = layout.findViewById(R.id.toast_icon);
+        TextView text = layout.findViewById(R.id.toast_message);
+
+        text.setText(message);
+
+        int color = isError
+                ? ContextCompat.getColor(context, android.R.color.holo_red_dark)
+                : ContextCompat.getColor(context, R.color.colorBlue);
+
+        GradientDrawable background = new GradientDrawable();
+        background.setCornerRadius(24f);
+        background.setColor(color);
+        container.setBackground(background);
+
+        icon.setImageResource(isError ? R.drawable.ic_error : R.drawable.ic_check_circle);
+
+        Toast toast = new Toast(context.getApplicationContext());
+        toast.setDuration(Toast.LENGTH_LONG);
+        toast.setView(layout);
+        toast.setGravity(Gravity.BOTTOM, 0, 120);
+        toast.show();
     }
 }
