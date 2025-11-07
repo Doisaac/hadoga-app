@@ -24,6 +24,9 @@ public interface CitaDao {
     @Query("DELETE FROM cita")
     void eliminarTodas();
 
+    @Query("SELECT * FROM cita WHERE id = :idCita LIMIT 1")
+    Cita obtenerPorId(int idCita);
+
     @Query("SELECT * FROM cita ORDER BY fecha_hora DESC")
     List<Cita> obtenerTodas();
 

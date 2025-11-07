@@ -35,6 +35,9 @@ public class Cita implements Serializable {
     @PrimaryKey(autoGenerate = true)
     private int id;
 
+    @ColumnInfo(name = "id_firebase")
+    private String idFirebase;
+
     @ColumnInfo(name = "codigo_sucursal_asignada")
     private String codigoSucursalAsignada;
 
@@ -54,8 +57,9 @@ public class Cita implements Serializable {
     private String estado;
 
     // Constructor principal
-    public Cita(String codigoSucursalAsignada, int pacienteId, String fechaHora,
-                String motivo, String notas, String estado) {
+    public Cita(String idFirebase, String codigoSucursalAsignada, int pacienteId,
+                String fechaHora, String motivo, String notas, String estado) {
+        this.idFirebase = idFirebase;
         this.codigoSucursalAsignada = codigoSucursalAsignada;
         this.pacienteId = pacienteId;
         this.fechaHora = fechaHora;
@@ -122,5 +126,13 @@ public class Cita implements Serializable {
 
     public void setEstado(String estado) {
         this.estado = estado;
+    }
+
+    public String getIdFirebase() {
+        return idFirebase;
+    }
+
+    public void setIdFirebase(String idFirebase) {
+        this.idFirebase = idFirebase;
     }
 }

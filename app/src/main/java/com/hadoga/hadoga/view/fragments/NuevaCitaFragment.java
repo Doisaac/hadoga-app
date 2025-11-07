@@ -281,7 +281,9 @@ public class NuevaCitaFragment extends Fragment {
             }
 
             // Insertar o actualizar si estuviera en modo edición
-            Cita nueva = new Cita(codigoSucursal, pacienteId, fechaHora, motivo, notas, estadoSel);
+            String idFirebase = java.util.UUID.randomUUID().toString();
+
+            Cita nueva = new Cita(idFirebase, codigoSucursal, pacienteId, fechaHora, motivo, notas, estadoSel);
 
             try {
                 db.citaDao().insertar(nueva);
@@ -426,7 +428,8 @@ public class NuevaCitaFragment extends Fragment {
             }
 
             // Crear objeto actualizado
-            Cita act = new Cita(codigoSucursal, pacienteId, fechaHora, motivo, notas, estadoSel);
+            Cita original = db.citaDao().obtenerPorId(idCita);
+            Cita act = new Cita(original.getIdFirebase(), codigoSucursal, pacienteId, fechaHora, motivo, notas, estadoSel);
             act.setId(idCita);
 
             try {
