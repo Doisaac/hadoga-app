@@ -12,7 +12,9 @@ import com.hadoga.hadoga.model.entities.Paciente;
 import com.hadoga.hadoga.model.entities.Sucursal;
 import com.hadoga.hadoga.model.entities.Usuario;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Executors;
 
 public class FirestoreSyncHelper {
@@ -54,9 +56,15 @@ public class FirestoreSyncHelper {
     private void sincronizarUsuarios(Runnable onComplete) {
         List<Usuario> pendientes = db.usuarioDao().getPendientes();
         for (Usuario u : pendientes) {
+            Map<String, Object> data = new HashMap<>();
+            data.put("nombreClinica", u.getNombreClinica());
+            data.put("email", u.getEmail());
+            data.put("contrasena", u.getContrasena());
+            data.put("estado_sincronizacion", "SINCRONIZADO");
+
             firestore.collection("usuarios")
                     .document(u.getEmail())
-                    .set(u)
+                    .set(data)
                     .addOnSuccessListener(aVoid -> {
                         u.setEstadoSincronizacion("SINCRONIZADO");
                         Executors.newSingleThreadExecutor().execute(() -> db.usuarioDao().update(u));
