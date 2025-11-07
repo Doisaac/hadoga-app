@@ -24,16 +24,21 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.hadoga.hadoga.R;
 import com.hadoga.hadoga.model.database.HadogaDatabase;
 import com.hadoga.hadoga.model.entities.Paciente;
 import com.hadoga.hadoga.model.entities.Sucursal;
+import com.hadoga.hadoga.utils.FirebaseService;
+import com.hadoga.hadoga.utils.NetworkUtils;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Executors;
 
 public class AgregarPacienteFragment extends Fragment {
@@ -183,6 +188,13 @@ public class AgregarPacienteFragment extends Fragment {
             etFechaNacimiento.requestFocus();
             return;
         }
+
+        if (TextUtils.isEmpty(correo)) {
+            etCorreo.setError("El correo es obligatorio");
+            etCorreo.requestFocus();
+            return;
+        }
+
         if (generoId == -1) {
             Toast.makeText(requireContext(), "Selecciona un género", Toast.LENGTH_SHORT).show();
             return;
@@ -211,6 +223,13 @@ public class AgregarPacienteFragment extends Fragment {
                 return;
             }
 
+            Paciente existente = db.pacienteDao().obtenerPorCorreo(correo);
+            if (existente != null) {
+                requireActivity().runOnUiThread(() ->
+                        Toast.makeText(requireContext(), "El correo ingresado ya está registrado en otro paciente.", Toast.LENGTH_LONG).show());
+                return;
+            }
+
             Paciente nuevo = new Paciente(
                     nombre, apellido, fechaNac, genero, correo, telefono,
                     direccion, observaciones, cbDiabetes.isChecked(), cbAnemia.isChecked(),
@@ -220,16 +239,68 @@ public class AgregarPacienteFragment extends Fragment {
                     fotoSeleccionadaUri != null ? fotoSeleccionadaUri.toString() : null
             );
 
-            try {
+            // Verificar conexión
+            if (!NetworkUtils.isNetworkAvailable(requireContext())) {
+                nuevo.setEstadoSincronizacion("PENDIENTE");
                 db.pacienteDao().insertar(nuevo);
                 requireActivity().runOnUiThread(() -> {
-                    Toast.makeText(requireContext(), "Paciente agregado exitosamente", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(requireContext(),
+                            "Sin conexión. Paciente guardado localmente (pendiente de sincronizar).",
+                            Toast.LENGTH_LONG).show();
                     requireActivity().getSupportFragmentManager().popBackStack();
                 });
-            } catch (Exception e) {
-                e.printStackTrace();
-                requireActivity().runOnUiThread(() -> Toast.makeText(requireContext(), "Error al guardar el paciente", Toast.LENGTH_SHORT).show());
+                return;
             }
+
+            // Con conexión
+            FirebaseFirestore firestore = FirebaseService.getInstance();
+
+            Map<String, Object> data = new HashMap<>();
+            data.put("nombre", nombre);
+            data.put("apellido", apellido);
+            data.put("fechaNacimiento", fechaNac);
+            data.put("sexo", genero);
+            data.put("correoElectronico", correo);
+            data.put("numeroTelefono", telefono);
+            data.put("direccion", direccion);
+            data.put("observaciones", observaciones);
+            data.put("diabetes", cbDiabetes.isChecked());
+            data.put("anemia", cbAnemia.isChecked());
+            data.put("gastritis", cbGastritis.isChecked());
+            data.put("hipertensionHta", cbHipertension.isChecked());
+            data.put("hemorragias", cbHemorragias.isChecked());
+            data.put("asma", cbAsma.isChecked());
+            data.put("trastornosCardiacos", cbTrastornosCardiacos.isChecked());
+            data.put("convulsiones", cbConvulsiones.isChecked());
+            data.put("tiroides", cbTiroides.isChecked());
+            data.put("codigoSucursalAsignada", codigoSucursalSeleccionada);
+            data.put("fotoUri", fotoSeleccionadaUri != null ? fotoSeleccionadaUri.toString() : null);
+            data.put("estado_sincronizacion", "SINCRONIZADO");
+
+            firestore.collection("pacientes")
+                    // correo como id
+                    .document(correo)
+                    .set(data)
+                    .addOnSuccessListener(aVoid -> {
+                        nuevo.setEstadoSincronizacion("SINCRONIZADO");
+                        db.pacienteDao().insertar(nuevo);
+                        requireActivity().runOnUiThread(() -> {
+                            Toast.makeText(requireContext(),
+                                    "Paciente guardado y sincronizado correctamente.",
+                                    Toast.LENGTH_SHORT).show();
+                            requireActivity().getSupportFragmentManager().popBackStack();
+                        });
+                    })
+                    .addOnFailureListener(e -> {
+                        nuevo.setEstadoSincronizacion("PENDIENTE");
+                        db.pacienteDao().insertar(nuevo);
+                        requireActivity().runOnUiThread(() -> {
+                            Toast.makeText(requireContext(),
+                                    "Error al sincronizar. Guardado localmente.",
+                                    Toast.LENGTH_LONG).show();
+                            requireActivity().getSupportFragmentManager().popBackStack();
+                        });
+                    });
         });
     }
 
@@ -294,7 +365,6 @@ public class AgregarPacienteFragment extends Fragment {
     }
 
     private void actualizarPaciente(int idPaciente) {
-        //  Update
         String nombre = etNombre.getText().toString().trim();
         String apellido = etApellido.getText().toString().trim();
         String fechaNac = etFechaNacimiento.getText().toString().trim();
@@ -329,6 +399,19 @@ public class AgregarPacienteFragment extends Fragment {
                 return;
             }
 
+            if (TextUtils.isEmpty(correo)) {
+                etCorreo.setError("El correo es obligatorio");
+                etCorreo.requestFocus();
+                return;
+            }
+
+            Paciente existente = db.pacienteDao().obtenerPorCorreo(correo);
+            if (existente != null && existente.getId() != idPaciente) {
+                requireActivity().runOnUiThread(() ->
+                        Toast.makeText(requireContext(), "El correo ingresado ya pertenece a otro paciente.", Toast.LENGTH_LONG).show());
+                return;
+            }
+
             Paciente actualizado = new Paciente(
                     nombre, apellido, fechaNac, genero, correo, telefono,
                     direccion, observaciones, cbDiabetes.isChecked(), cbAnemia.isChecked(),
@@ -339,16 +422,64 @@ public class AgregarPacienteFragment extends Fragment {
             );
             actualizado.setId(idPaciente);
 
-            try {
+            if (!NetworkUtils.isNetworkAvailable(requireContext())) {
+                actualizado.setEstadoSincronizacion("PENDIENTE");
                 db.pacienteDao().actualizar(actualizado);
                 requireActivity().runOnUiThread(() -> {
-                    Toast.makeText(requireContext(), "Paciente actualizado exitosamente", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(requireContext(),
+                            "Sin conexión. Paciente actualizado localmente (pendiente de sincronizar).",
+                            Toast.LENGTH_LONG).show();
                     requireActivity().getSupportFragmentManager().popBackStack();
                 });
-            } catch (Exception e) {
-                e.printStackTrace();
-                requireActivity().runOnUiThread(() -> Toast.makeText(requireContext(), "Error al actualizar el paciente", Toast.LENGTH_SHORT).show());
+                return;
             }
+
+            FirebaseFirestore firestore = FirebaseService.getInstance();
+            Map<String, Object> data = new HashMap<>();
+            data.put("nombre", nombre);
+            data.put("apellido", apellido);
+            data.put("fechaNacimiento", fechaNac);
+            data.put("sexo", genero);
+            data.put("correoElectronico", correo);
+            data.put("numeroTelefono", telefono);
+            data.put("direccion", direccion);
+            data.put("observaciones", observaciones);
+            data.put("diabetes", cbDiabetes.isChecked());
+            data.put("anemia", cbAnemia.isChecked());
+            data.put("gastritis", cbGastritis.isChecked());
+            data.put("hipertensionHta", cbHipertension.isChecked());
+            data.put("hemorragias", cbHemorragias.isChecked());
+            data.put("asma", cbAsma.isChecked());
+            data.put("trastornosCardiacos", cbTrastornosCardiacos.isChecked());
+            data.put("convulsiones", cbConvulsiones.isChecked());
+            data.put("tiroides", cbTiroides.isChecked());
+            data.put("codigoSucursalAsignada", codigoSucursalSeleccionada);
+            data.put("fotoUri", fotoSeleccionadaUri != null ? fotoSeleccionadaUri.toString() : null);
+            data.put("estado_sincronizacion", "SINCRONIZADO");
+
+            firestore.collection("pacientes")
+                    .document(correo)
+                    .set(data)
+                    .addOnSuccessListener(aVoid -> {
+                        actualizado.setEstadoSincronizacion("SINCRONIZADO");
+                        db.pacienteDao().actualizar(actualizado);
+                        requireActivity().runOnUiThread(() -> {
+                            Toast.makeText(requireContext(),
+                                    "Paciente actualizado y sincronizado correctamente.",
+                                    Toast.LENGTH_SHORT).show();
+                            requireActivity().getSupportFragmentManager().popBackStack();
+                        });
+                    })
+                    .addOnFailureListener(e -> {
+                        actualizado.setEstadoSincronizacion("PENDIENTE");
+                        db.pacienteDao().actualizar(actualizado);
+                        requireActivity().runOnUiThread(() -> {
+                            Toast.makeText(requireContext(),
+                                    "Error al sincronizar. Actualizado localmente.",
+                                    Toast.LENGTH_LONG).show();
+                            requireActivity().getSupportFragmentManager().popBackStack();
+                        });
+                    });
         });
     }
 }

@@ -7,6 +7,7 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.hadoga.hadoga.model.database.HadogaDatabase;
 import com.hadoga.hadoga.model.entities.Doctor;
+import com.hadoga.hadoga.model.entities.Paciente;
 import com.hadoga.hadoga.model.entities.Sucursal;
 import com.hadoga.hadoga.model.entities.Usuario;
 
@@ -36,10 +37,11 @@ public class FirestoreSyncHelper {
             sincronizarUsuarios(() -> {
                 sincronizarSucursales(() -> {
                     sincronizarDoctores(() -> {
-                        // Al finalizar todo
-                        new android.os.Handler(context.getMainLooper()).post(() ->
-                                Toast.makeText(context, "Datos sincronizados correctamente.", Toast.LENGTH_LONG).show()
-                        );
+                        sincronizarPacientes(() -> {
+                            new android.os.Handler(context.getMainLooper()).post(() ->
+                                    Toast.makeText(context, "Datos sincronizados correctamente.", Toast.LENGTH_LONG).show()
+                            );
+                        });
                     });
                 });
             });
@@ -127,6 +129,38 @@ public class FirestoreSyncHelper {
 
                         if (local == null) db.doctorDao().insertar(remoto);
                         else db.doctorDao().actualizar(remoto);
+                    }
+                    onComplete.run();
+                }))
+                .addOnFailureListener(e -> onComplete.run());
+    }
+
+    private void sincronizarPacientes(Runnable onComplete) {
+        List<Paciente> pendientes = db.pacienteDao().getPendientes();
+
+        // Subir los pendientes locales a Firestore
+        for (Paciente p : pendientes) {
+            firestore.collection("pacientes")
+                    .document(p.getCorreoElectronico())
+                    .set(p)
+                    .addOnSuccessListener(aVoid -> {
+                        p.setEstadoSincronizacion("SINCRONIZADO");
+                        Executors.newSingleThreadExecutor().execute(() -> db.pacienteDao().actualizar(p));
+                    });
+        }
+
+        // Descargar los datos más recientes desde Firestore
+        firestore.collection("pacientes")
+                .get()
+                .addOnSuccessListener(query -> Executors.newSingleThreadExecutor().execute(() -> {
+                    for (QueryDocumentSnapshot doc : query) {
+                        String correo = doc.getString("correoElectronico");
+                        Paciente remoto = doc.toObject(Paciente.class);
+                        remoto.setEstadoSincronizacion("SINCRONIZADO");
+
+                        Paciente local = db.pacienteDao().obtenerPorCorreo(correo);
+                        if (local == null) db.pacienteDao().insertar(remoto);
+                        else db.pacienteDao().actualizar(remoto);
                     }
                     onComplete.run();
                 }))
