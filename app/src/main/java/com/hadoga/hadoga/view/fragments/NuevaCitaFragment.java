@@ -287,6 +287,7 @@ public class NuevaCitaFragment extends Fragment {
 
             try {
                 db.citaDao().insertar(nueva);
+                subirCitaAFirebase(nueva);
                 requireActivity().runOnUiThread(() -> {
                     Toast.makeText(requireContext(), "Cita creada exitosamente", Toast.LENGTH_SHORT).show();
                     requireActivity().getSupportFragmentManager().popBackStack();
@@ -434,6 +435,7 @@ public class NuevaCitaFragment extends Fragment {
 
             try {
                 db.citaDao().actualizar(act);
+                subirCitaAFirebase(act);
                 requireActivity().runOnUiThread(() -> {
                     Toast.makeText(requireContext(), "Cita actualizada exitosamente", Toast.LENGTH_SHORT).show();
                     requireActivity().getSupportFragmentManager().popBackStack();
@@ -444,6 +446,26 @@ public class NuevaCitaFragment extends Fragment {
                         Toast.makeText(requireContext(), "Error al actualizar la cita", Toast.LENGTH_SHORT).show());
             }
         });
+    }
+
+    private void subirCitaAFirebase(Cita cita) {
+        com.google.firebase.firestore.FirebaseFirestore firestore = com.google.firebase.firestore.FirebaseFirestore.getInstance();
+
+        firestore.collection("citas")
+                .document(cita.getIdFirebase())
+                .set(cita)
+                .addOnSuccessListener(aVoid -> {
+                    Executors.newSingleThreadExecutor().execute(() -> {
+                        cita.setEstadoSincronizacion("SINCRONIZADO");
+                        db.citaDao().actualizar(cita);
+                    });
+                })
+                .addOnFailureListener(e -> {
+                    Executors.newSingleThreadExecutor().execute(() -> {
+                        cita.setEstadoSincronizacion("PENDIENTE");
+                        db.citaDao().actualizar(cita);
+                    });
+                });
     }
 
 }

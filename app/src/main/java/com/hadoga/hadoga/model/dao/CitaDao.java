@@ -60,4 +60,13 @@ public interface CitaDao {
             "AND id != :idCita " +
             "AND fecha_hora BETWEEN :desde AND :hasta")
     int contarSolapadasExcluyendo(int idCita, String codigoSucursal, String desde, String hasta);
+
+    @Query("SELECT * FROM cita WHERE estado_sincronizacion = 'PENDIENTE'")
+    List<Cita> getPendientes();
+
+    @Query("SELECT * FROM cita WHERE id_firebase = :idFirebase LIMIT 1")
+    Cita getByFirebaseId(String idFirebase);
+
+    @Query("SELECT * FROM cita WHERE estado_sincronizacion = 'ELIMINADO_PENDIENTE'")
+    List<Cita> getEliminadosPendientes();
 }

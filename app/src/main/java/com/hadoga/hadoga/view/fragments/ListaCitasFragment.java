@@ -179,7 +179,14 @@ public class ListaCitasFragment extends Fragment {
 
     private void eliminarCitaDeBD(Cita cita) {
         Executors.newSingleThreadExecutor().execute(() -> {
-            db.citaDao().eliminar(cita);
+            boolean hayConexion = com.hadoga.hadoga.utils.NetworkUtils.isNetworkAvailable(requireContext());
+
+            if (hayConexion) {
+                eliminarCitaEnFirebase(cita);
+            } else {
+                cita.setEstadoSincronizacion("ELIMINADO_PENDIENTE");
+                db.citaDao().actualizar(cita);
+            }
 
             requireActivity().runOnUiThread(() -> {
                 Toast.makeText(requireContext(),
@@ -188,5 +195,24 @@ public class ListaCitasFragment extends Fragment {
                 cargarCitas(null);
             });
         });
+    }
+
+    private void eliminarCitaEnFirebase(Cita cita) {
+        com.google.firebase.firestore.FirebaseFirestore firestore = com.google.firebase.firestore.FirebaseFirestore.getInstance();
+
+        firestore.collection("citas")
+                .document(cita.getIdFirebase())
+                .delete()
+                .addOnSuccessListener(aVoid -> {
+                    Executors.newSingleThreadExecutor().execute(() -> {
+                        db.citaDao().eliminar(cita);
+                    });
+                })
+                .addOnFailureListener(e -> {
+                    Executors.newSingleThreadExecutor().execute(() -> {
+                        cita.setEstadoSincronizacion("ELIMINADO_PENDIENTE");
+                        db.citaDao().actualizar(cita);
+                    });
+                });
     }
 }

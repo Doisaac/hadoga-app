@@ -6,6 +6,7 @@ import android.widget.Toast;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.hadoga.hadoga.model.database.HadogaDatabase;
+import com.hadoga.hadoga.model.entities.Cita;
 import com.hadoga.hadoga.model.entities.Doctor;
 import com.hadoga.hadoga.model.entities.Paciente;
 import com.hadoga.hadoga.model.entities.Sucursal;
@@ -38,9 +39,11 @@ public class FirestoreSyncHelper {
                 sincronizarSucursales(() -> {
                     sincronizarDoctores(() -> {
                         sincronizarPacientes(() -> {
-                            new android.os.Handler(context.getMainLooper()).post(() ->
-                                    Toast.makeText(context, "Datos sincronizados correctamente.", Toast.LENGTH_LONG).show()
-                            );
+                            sincronizarCitas(() -> {
+                                new android.os.Handler(context.getMainLooper()).post(() ->
+                                        Toast.makeText(context, "Datos sincronizados correctamente.", Toast.LENGTH_LONG).show()
+                                );
+                            });
                         });
                     });
                 });
@@ -175,6 +178,53 @@ public class FirestoreSyncHelper {
                         Paciente local = db.pacienteDao().obtenerPorCorreo(correo);
                         if (local == null) db.pacienteDao().insertar(remoto);
                         else db.pacienteDao().actualizar(remoto);
+                    }
+                    onComplete.run();
+                }))
+                .addOnFailureListener(e -> onComplete.run());
+    }
+
+    private void sincronizarCitas(Runnable onComplete) {
+        // 1. Eliminar citas marcadas como "ELIMINADO_PENDIENTE"
+        List<Cita> eliminadasPendientes = db.citaDao().getEliminadosPendientes();
+        for (Cita c : eliminadasPendientes) {
+            firestore.collection("citas")
+                    .document(c.getIdFirebase())
+                    .delete()
+                    .addOnSuccessListener(aVoid -> Executors.newSingleThreadExecutor().execute(() -> {
+                        db.citaDao().eliminar(c);
+                    }))
+                    .addOnFailureListener(e -> {
+                        // Mantener como pendiente si falla la eliminación
+                    });
+        }
+
+        // 2. Subir citas pendientes (nuevas o actualizadas)
+        List<Cita> pendientes = db.citaDao().getPendientes();
+        for (Cita c : pendientes) {
+            firestore.collection("citas")
+                    .document(c.getIdFirebase())
+                    .set(c)
+                    .addOnSuccessListener(aVoid -> {
+                        c.setEstadoSincronizacion("SINCRONIZADO");
+                        Executors.newSingleThreadExecutor().execute(() -> db.citaDao().actualizar(c));
+                    })
+                    .addOnFailureListener(e -> {
+                        // Si falla, se mantiene como pendiente
+                    });
+        }
+
+        // 3. Descargar citas desde Firestore
+        firestore.collection("citas")
+                .get()
+                .addOnSuccessListener(query -> Executors.newSingleThreadExecutor().execute(() -> {
+                    for (com.google.firebase.firestore.QueryDocumentSnapshot doc : query) {
+                        Cita remota = doc.toObject(Cita.class);
+                        remota.setEstadoSincronizacion("SINCRONIZADO");
+
+                        Cita local = db.citaDao().getByFirebaseId(remota.getIdFirebase());
+                        if (local == null) db.citaDao().insertar(remota);
+                        else db.citaDao().actualizar(remota);
                     }
                     onComplete.run();
                 }))

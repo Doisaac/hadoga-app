@@ -56,6 +56,9 @@ public class Cita implements Serializable {
     @ColumnInfo(name = "estado", defaultValue = "pendiente")
     private String estado;
 
+    @ColumnInfo(name = "estado_sincronizacion")
+    private String estadoSincronizacion = "PENDIENTE";
+
     // Constructor principal
     public Cita(String idFirebase, String codigoSucursalAsignada, int pacienteId,
                 String fechaHora, String motivo, String notas, String estado) {
@@ -134,5 +137,13 @@ public class Cita implements Serializable {
 
     public void setIdFirebase(String idFirebase) {
         this.idFirebase = idFirebase;
+    }
+
+    public String getEstadoSincronizacion() {
+        return estadoSincronizacion;
+    }
+
+    public void setEstadoSincronizacion(String estadoSincronizacion) {
+        this.estadoSincronizacion = estadoSincronizacion;
     }
 }
