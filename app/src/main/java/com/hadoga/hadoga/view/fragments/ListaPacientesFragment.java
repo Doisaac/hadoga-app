@@ -17,10 +17,13 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.hadoga.hadoga.R;
 import com.hadoga.hadoga.model.database.HadogaDatabase;
 import com.hadoga.hadoga.model.entities.Paciente;
 import com.hadoga.hadoga.model.entities.Sucursal;
+import com.hadoga.hadoga.utils.FirebaseService;
+import com.hadoga.hadoga.utils.NetworkUtils;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -178,22 +181,51 @@ public class ListaPacientesFragment extends Fragment {
     private void borrarPaciente(Paciente paciente) {
         new AlertDialog.Builder(requireContext())
                 .setTitle("Confirmar eliminación")
-                .setMessage("¿Seguro que deseas eliminar a \"" + paciente.getNombre() + " " + paciente.getApellido() + "\"?")
+                .setMessage("¿Seguro que deseas eliminar al paciente \"" + paciente.getNombre() + " " + paciente.getApellido() + "\"?")
                 .setPositiveButton("Eliminar", (dialog, which) -> eliminarPacienteDeBD(paciente))
                 .setNegativeButton("Cancelar", (dialog, which) -> dialog.dismiss())
                 .show();
     }
 
     private void eliminarPacienteDeBD(Paciente paciente) {
-        Executors.newSingleThreadExecutor().execute(() -> {
-            db.pacienteDao().eliminar(paciente);
-
-            requireActivity().runOnUiThread(() -> {
-                Toast.makeText(requireContext(),
-                        "Paciente eliminado correctamente",
-                        Toast.LENGTH_SHORT).show();
-                cargarPacientes(null);
+        // Sin conexión
+        if (!NetworkUtils.isNetworkAvailable(requireContext())) {
+            Executors.newSingleThreadExecutor().execute(() -> {
+                paciente.setEstadoSincronizacion("ELIMINADO_PENDIENTE");
+                db.pacienteDao().actualizar(paciente);
+                requireActivity().runOnUiThread(() -> {
+                    Toast.makeText(requireContext(),
+                            "Sin conexión. Eliminación pendiente de sincronizar.",
+                            Toast.LENGTH_LONG).show();
+                    cargarPacientes(null);
+                });
             });
-        });
+            return;
+        }
+
+        // Con conexión: eliminar de Firestore y localmente
+        FirebaseFirestore firestore = FirebaseService.getInstance();
+        firestore.collection("pacientes")
+                .document(paciente.getCorreoElectronico())
+                .delete()
+                .addOnSuccessListener(aVoid -> Executors.newSingleThreadExecutor().execute(() -> {
+                    db.pacienteDao().eliminar(paciente);
+                    requireActivity().runOnUiThread(() -> {
+                        Toast.makeText(requireContext(),
+                                "Paciente eliminado correctamente.",
+                                Toast.LENGTH_SHORT).show();
+                        cargarPacientes(null);
+                    });
+                }))
+                .addOnFailureListener(e -> Executors.newSingleThreadExecutor().execute(() -> {
+                    paciente.setEstadoSincronizacion("ELIMINADO_PENDIENTE");
+                    db.pacienteDao().actualizar(paciente);
+                    requireActivity().runOnUiThread(() -> {
+                        Toast.makeText(requireContext(),
+                                "Error al eliminar en la nube. Eliminación pendiente.",
+                                Toast.LENGTH_LONG).show();
+                        cargarPacientes(null);
+                    });
+                }));
     }
 }

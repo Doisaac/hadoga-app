@@ -138,6 +138,20 @@ public class FirestoreSyncHelper {
     private void sincronizarPacientes(Runnable onComplete) {
         List<Paciente> pendientes = db.pacienteDao().getPendientes();
 
+        // Eliminar los pacientes marcados como "ELIMINADO_PENDIENTE"
+        List<Paciente> eliminadosPendientes = db.pacienteDao().getEliminadosPendientes();
+        for (Paciente p : eliminadosPendientes) {
+            firestore.collection("pacientes")
+                    .document(p.getCorreoElectronico())
+                    .delete()
+                    .addOnSuccessListener(aVoid -> Executors.newSingleThreadExecutor().execute(() -> {
+                        db.pacienteDao().eliminar(p);
+                    }))
+                    .addOnFailureListener(e -> {
+                        // pendientes de eliminar
+                    });
+        }
+
         // Subir los pendientes locales a Firestore
         for (Paciente p : pendientes) {
             firestore.collection("pacientes")

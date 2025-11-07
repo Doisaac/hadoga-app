@@ -312,6 +312,7 @@ public class AgregarPacienteFragment extends Fragment {
         etTelefono.setText(p.getNumeroTelefono());
         etDireccion.setText(p.getDireccion());
         etObservaciones.setText(p.getObservaciones());
+        etCorreo.setEnabled(false);
 
         // Género
         if (p.getSexo().equalsIgnoreCase("masculino")) rgGenero.check(R.id.rbMasculino);
