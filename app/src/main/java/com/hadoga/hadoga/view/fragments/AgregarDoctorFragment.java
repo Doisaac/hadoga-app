@@ -72,6 +72,7 @@ public class AgregarDoctorFragment extends Fragment {
         etApellido.setText(d.getApellido());
         etFechaNacimiento.setText(d.getFechaNacimiento());
         etColegiado.setText(d.getNumeroColegiado());
+        etColegiado.setEnabled(false);
 
         // Género
         if (d.getSexo().equalsIgnoreCase("masculino")) {

@@ -63,6 +63,7 @@ public class AgregarSucursalFragment extends Fragment {
         etDireccion.setText(s.getDireccionCompleta());
         etTelefono.setText(s.getTelefono());
         etCorreo.setText(s.getCorreo());
+        etCodigoSucursal.setEnabled(false);
 
         ArrayAdapter<CharSequence> adapter = (ArrayAdapter<CharSequence>) spDepartamento.getAdapter();
         if (adapter != null) {
