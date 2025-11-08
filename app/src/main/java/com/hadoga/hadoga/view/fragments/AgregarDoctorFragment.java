@@ -2,10 +2,12 @@ package com.hadoga.hadoga.view.fragments;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.text.TextUtils;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,15 +15,18 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -137,12 +142,12 @@ public class AgregarDoctorFragment extends Fragment {
         int generoId = rgGenero.getCheckedRadioButtonId();
 
         if (TextUtils.isEmpty(nombre) || TextUtils.isEmpty(apellido) || TextUtils.isEmpty(colegiado)) {
-            Toast.makeText(requireContext(), "Completa todos los campos obligatorios", Toast.LENGTH_SHORT).show();
+            showSnackbarLikeToast("Completa todos los campos obligatorios.", true);
             return;
         }
 
         if (generoId == -1) {
-            Toast.makeText(requireContext(), "Selecciona un género", Toast.LENGTH_SHORT).show();
+            showSnackbarLikeToast("Selecciona un género.", true);
             return;
         }
 
@@ -161,7 +166,7 @@ public class AgregarDoctorFragment extends Fragment {
 
             if (codigoSucursalSeleccionada == null) {
                 requireActivity().runOnUiThread(() ->
-                        Toast.makeText(requireContext(), "Sucursal no encontrada", Toast.LENGTH_SHORT).show()
+                        showSnackbarLikeToast("Sucursal no encontrada.", true)
                 );
                 return;
             }
@@ -182,9 +187,7 @@ public class AgregarDoctorFragment extends Fragment {
                 actualizado.setEstadoSincronizacion("PENDIENTE");
                 db.doctorDao().actualizar(actualizado);
                 requireActivity().runOnUiThread(() -> {
-                    Toast.makeText(requireContext(),
-                            "Sin conexión. Actualización guardada localmente (pendiente de sincronizar)",
-                            Toast.LENGTH_LONG).show();
+                    showSnackbarLikeToast("Sin conexión. Se guardó localmente.", null);
                     requireActivity().getSupportFragmentManager().popBackStack();
                 });
                 return;
@@ -198,7 +201,7 @@ public class AgregarDoctorFragment extends Fragment {
                         actualizado.setEstadoSincronizacion("SINCRONIZADO");
                         db.doctorDao().actualizar(actualizado);
                         requireActivity().runOnUiThread(() -> {
-                            Toast.makeText(requireContext(), "Doctor actualizado correctamente", Toast.LENGTH_SHORT).show();
+                            showSnackbarLikeToast("Doctor actualizado correctamente.", false);
                             requireActivity().getSupportFragmentManager().popBackStack();
                         });
                     }))
@@ -206,9 +209,7 @@ public class AgregarDoctorFragment extends Fragment {
                         actualizado.setEstadoSincronizacion("PENDIENTE");
                         db.doctorDao().actualizar(actualizado);
                         requireActivity().runOnUiThread(() ->
-                                Toast.makeText(requireContext(),
-                                        "Error al actualizar en la nube. Guardado localmente como pendiente.",
-                                        Toast.LENGTH_LONG).show()
+                                showSnackbarLikeToast("No se pudo actualizar en la nube. Se guardó localmente.", null)
                         );
                         requireActivity().getSupportFragmentManager().popBackStack();
                     }));
@@ -316,7 +317,7 @@ public class AgregarDoctorFragment extends Fragment {
 
                 } catch (Exception e) {
                     e.printStackTrace();
-                    Toast.makeText(requireContext(), "Error al cargar la imagen", Toast.LENGTH_SHORT).show();
+                    showSnackbarLikeToast("Error al cargar la imagen.", true);
                 }
             }
         }
@@ -353,15 +354,15 @@ public class AgregarDoctorFragment extends Fragment {
             return;
         }
         if (TextUtils.isEmpty(especialidad)) {
-            Toast.makeText(requireContext(), "Selecciona una especialidad", Toast.LENGTH_SHORT).show();
+            showSnackbarLikeToast("Selecciona una especialidad.", true);
             return;
         }
         if (TextUtils.isEmpty(sucursalNombre)) {
-            Toast.makeText(requireContext(), "Selecciona una sucursal", Toast.LENGTH_SHORT).show();
+            showSnackbarLikeToast("Selecciona una sucursal.", true);
             return;
         }
         if (generoId == -1) {
-            Toast.makeText(requireContext(), "Selecciona un género", Toast.LENGTH_SHORT).show();
+            showSnackbarLikeToast("Selecciona un género.", true);
             return;
         }
 
@@ -382,7 +383,7 @@ public class AgregarDoctorFragment extends Fragment {
 
             if (codigoSucursalSeleccionada == null) {
                 requireActivity().runOnUiThread(() ->
-                        Toast.makeText(requireContext(), "Sucursal no encontrada", Toast.LENGTH_SHORT).show()
+                        showSnackbarLikeToast("Sucursal no encontrada.", true)
                 );
                 return;
             }
@@ -400,7 +401,7 @@ public class AgregarDoctorFragment extends Fragment {
                     Executors.newSingleThreadExecutor().execute(() -> {
                         db.doctorDao().insertar(nuevoDoctor);
                         requireActivity().runOnUiThread(() ->
-                                Toast.makeText(requireContext(), "Doctor guardado localmente (sin conexión)", Toast.LENGTH_LONG).show()
+                                showSnackbarLikeToast("Sin conexión. El doctor se guardó localmente.", null)
                         );
                         requireActivity().getSupportFragmentManager().popBackStack();
                     });
@@ -417,7 +418,7 @@ public class AgregarDoctorFragment extends Fragment {
                             db.doctorDao().insertar(nuevoDoctor);
 
                             requireActivity().runOnUiThread(() -> {
-                                Toast.makeText(requireContext(), "Doctor guardado y sincronizado", Toast.LENGTH_SHORT).show();
+                                showSnackbarLikeToast("Doctor guardado y sincronizado.", false);
                                 requireActivity().getSupportFragmentManager().popBackStack();
                             });
                         }))
@@ -425,7 +426,7 @@ public class AgregarDoctorFragment extends Fragment {
                             nuevoDoctor.setEstadoSincronizacion("PENDIENTE");
                             db.doctorDao().insertar(nuevoDoctor);
                             requireActivity().runOnUiThread(() ->
-                                    Toast.makeText(requireContext(), "Doctor guardado localmente (pendiente de sincronizar)", Toast.LENGTH_LONG).show()
+                                    showSnackbarLikeToast("No se pudo sincronizar. Se guardó localmente.", null)
                             );
                             requireActivity().getSupportFragmentManager().popBackStack();
                         }));
@@ -435,12 +436,47 @@ public class AgregarDoctorFragment extends Fragment {
                         etColegiado.setError("El número de colegiado ya está registrado");
                         etColegiado.requestFocus();
                     } else {
-                        Toast.makeText(requireContext(), "Error al guardar el doctor", Toast.LENGTH_SHORT).show();
+                        showSnackbarLikeToast("Error al guardar el doctor.", true);
                     }
                 });
             }
         });
     }
+    private void showSnackbarLikeToast(String message, Boolean isError) {
+        LayoutInflater inflater = getLayoutInflater();
+        View layout = inflater.inflate(R.layout.custom_toast, null);
 
+        LinearLayout container = layout.findViewById(R.id.toast_container);
+        TextView text = layout.findViewById(R.id.toast_message);
+        ImageView icon = layout.findViewById(R.id.toast_icon);
 
+        text.setText(message);
+
+        int color;
+        int iconRes;
+
+        if (isError == null) {
+            color = ContextCompat.getColor(requireContext(), R.color.colorWarning);
+            iconRes = R.drawable.ic_check_circle;
+        } else if (isError) {
+            color = ContextCompat.getColor(requireContext(), android.R.color.holo_red_dark);
+            iconRes = R.drawable.ic_error;
+        } else {
+            color = ContextCompat.getColor(requireContext(), R.color.colorBlue);
+            iconRes = R.drawable.ic_check_circle;
+        }
+
+        icon.setImageResource(iconRes);
+
+        GradientDrawable background = new GradientDrawable();
+        background.setCornerRadius(24f);
+        background.setColor(color);
+        container.setBackground(background);
+
+        Toast toast = new Toast(requireContext().getApplicationContext());
+        toast.setDuration(Toast.LENGTH_LONG);
+        toast.setView(layout);
+        toast.setGravity(Gravity.BOTTOM, 0, 120);
+        toast.show();
+    }
 }

@@ -6,4 +6,5 @@
     <color name="colorGrayText">#878080</color>
     <color name="colorPurple">#A448FF</color>
     <color name="colorBlue">#6B88FF</color>
+    <color name="colorWarning">#FFC107</color>
 </resources>
