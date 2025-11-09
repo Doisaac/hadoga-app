@@ -1,17 +1,21 @@
 package com.hadoga.hadoga.view.fragments;
 
 import android.app.AlertDialog;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -112,9 +116,7 @@ public class ListaSucursalesFragment extends Fragment {
             requireActivity().runOnUiThread(() -> {
                 if (!doctoresAsociados.isEmpty()) {
                     // Si hay doctores, mostrar aviso
-                    Toast.makeText(requireContext(),
-                            "Primero elimina los doctores asociados a esta sucursal antes de borrarla.",
-                            Toast.LENGTH_LONG).show();
+                    showSnackbarLikeToast("Primero elimina los doctores asociados a esta sucursal antes de borrarla.", true);
                 } else {
                     // Si no hay doctores, continuar con el diálogo de confirmación normal
                     new AlertDialog.Builder(requireContext())
@@ -138,9 +140,7 @@ public class ListaSucursalesFragment extends Fragment {
                 db.sucursalDao().update(sucursal);
 
                 requireActivity().runOnUiThread(() -> {
-                    Toast.makeText(requireContext(),
-                            "Sin conexión. Eliminación pendiente de sincronizar.",
-                            Toast.LENGTH_LONG).show();
+                    showSnackbarLikeToast("Sin conexión. La sucursal se eliminó localmente.", null);
                     cargarSucursales();
                 });
             });
@@ -158,9 +158,7 @@ public class ListaSucursalesFragment extends Fragment {
                         db.sucursalDao().delete(sucursal);
 
                         requireActivity().runOnUiThread(() -> {
-                            Toast.makeText(requireContext(),
-                                    "Sucursal eliminada correctamente.",
-                                    Toast.LENGTH_SHORT).show();
+                            showSnackbarLikeToast("Sucursal eliminada correctamente.", false);
                             cargarSucursales();
                         });
                     });
@@ -171,12 +169,48 @@ public class ListaSucursalesFragment extends Fragment {
                         db.sucursalDao().update(sucursal);
 
                         requireActivity().runOnUiThread(() -> {
-                            Toast.makeText(requireContext(),
-                                    "Error al eliminar en la nube. Eliminación pendiente.",
-                                    Toast.LENGTH_LONG).show();
+                            showSnackbarLikeToast("Error al eliminar en la nube. La sucursal se eliminó localmente.", null);
                             cargarSucursales();
                         });
                     });
                 });
     }
+    private void showSnackbarLikeToast(String message, Boolean isError) {
+        LayoutInflater inflater = getLayoutInflater();
+        View layout = inflater.inflate(R.layout.custom_toast, null);
+
+        LinearLayout container = layout.findViewById(R.id.toast_container);
+        TextView text = layout.findViewById(R.id.toast_message);
+        ImageView icon = layout.findViewById(R.id.toast_icon);
+
+        text.setText(message);
+
+        int color;
+        int iconRes;
+
+        if (isError == null) {
+            color = ContextCompat.getColor(requireContext(), R.color.colorWarning);
+            iconRes = R.drawable.ic_check_circle;
+        } else if (isError) {
+            color = ContextCompat.getColor(requireContext(), android.R.color.holo_red_dark);
+            iconRes = R.drawable.ic_error;
+        } else {
+            color = ContextCompat.getColor(requireContext(), R.color.colorBlue);
+            iconRes = R.drawable.ic_check_circle;
+        }
+
+        icon.setImageResource(iconRes);
+
+        GradientDrawable background = new GradientDrawable();
+        background.setCornerRadius(24f);
+        background.setColor(color);
+        container.setBackground(background);
+
+        Toast toast = new Toast(requireContext().getApplicationContext());
+        toast.setDuration(Toast.LENGTH_LONG);
+        toast.setView(layout);
+        toast.setGravity(Gravity.BOTTOM, 0, 120);
+        toast.show();
+    }
+
 }
