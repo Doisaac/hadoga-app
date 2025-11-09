@@ -100,7 +100,7 @@ public class AgregarSucursalFragment extends Fragment {
         }
 
         if (TextUtils.isEmpty(depto)) {
-            Toast.makeText(requireContext(), "Selecciona un departamento", Toast.LENGTH_SHORT).show();
+            showSnackbarLikeToast("Selecciona un departamento.", true);
             return;
         }
 
@@ -146,7 +146,7 @@ public class AgregarSucursalFragment extends Fragment {
             Executors.newSingleThreadExecutor().execute(() -> {
                 db.sucursalDao().update(actualizada);
                 requireActivity().runOnUiThread(() -> {
-                    Toast.makeText(requireContext(), "Sin conexión. Sucursal actualizada localmente (pendiente de sincronizar).", Toast.LENGTH_LONG).show();
+                    showSnackbarLikeToast("Sin conexión. Sucursal actualizada localmente.", null);
                     requireActivity().getSupportFragmentManager().popBackStack();
                 });
             });
@@ -173,7 +173,7 @@ public class AgregarSucursalFragment extends Fragment {
                     Executors.newSingleThreadExecutor().execute(() -> db.sucursalDao().update(actualizada));
 
                     requireActivity().runOnUiThread(() -> {
-                        Toast.makeText(requireContext(), "Sucursal actualizada y sincronizada correctamente.", Toast.LENGTH_SHORT).show();
+                        showSnackbarLikeToast("Sucursal actualizada y sincronizada correctamente.", false);
                         requireActivity().getSupportFragmentManager().popBackStack();
                     });
                 })
@@ -182,7 +182,7 @@ public class AgregarSucursalFragment extends Fragment {
                     Executors.newSingleThreadExecutor().execute(() -> db.sucursalDao().update(actualizada));
 
                     requireActivity().runOnUiThread(() -> {
-                        Toast.makeText(requireContext(), "Error al sincronizar. Actualizada localmente.", Toast.LENGTH_LONG).show();
+                        showSnackbarLikeToast("Error al sincronizar. Sucursal guardada localmente.", null);
                         requireActivity().getSupportFragmentManager().popBackStack();
                     });
                 });
@@ -272,7 +272,7 @@ public class AgregarSucursalFragment extends Fragment {
             Executors.newSingleThreadExecutor().execute(() -> {
                 db.sucursalDao().insert(sucursal);
                 requireActivity().runOnUiThread(() -> {
-                    Toast.makeText(requireContext(), "Sin conexión. Sucursal guardada localmente", Toast.LENGTH_LONG).show();
+                    showSnackbarLikeToast("Sin conexión. Sucursal guardada localmente.", null);
                     requireActivity().getSupportFragmentManager().popBackStack();
                 });
             });
@@ -299,7 +299,7 @@ public class AgregarSucursalFragment extends Fragment {
                     Executors.newSingleThreadExecutor().execute(() -> db.sucursalDao().insert(sucursal));
 
                     requireActivity().runOnUiThread(() -> {
-                        Toast.makeText(requireContext(), "Sucursal guardada y sincronizada correctamente.", Toast.LENGTH_SHORT).show();
+                        showSnackbarLikeToast("Sucursal guardada y sincronizada correctamente.", false);
                         requireActivity().getSupportFragmentManager().popBackStack();
                     });
                 })
@@ -308,9 +308,48 @@ public class AgregarSucursalFragment extends Fragment {
                     Executors.newSingleThreadExecutor().execute(() -> db.sucursalDao().insert(sucursal));
 
                     requireActivity().runOnUiThread(() -> {
-                        Toast.makeText(requireContext(), "Error al sincronizar. Guardada localmente.", Toast.LENGTH_LONG).show();
+                        showSnackbarLikeToast("Error al sincronizar. Guardada localmente.", null);
                         requireActivity().getSupportFragmentManager().popBackStack();
                     });
                 });
     }
+
+    private void showSnackbarLikeToast(String message, Boolean isError) {
+        LayoutInflater inflater = getLayoutInflater();
+        View layout = inflater.inflate(R.layout.custom_toast, null);
+
+        LinearLayout container = layout.findViewById(R.id.toast_container);
+        TextView text = layout.findViewById(R.id.toast_message);
+        ImageView icon = layout.findViewById(R.id.toast_icon);
+
+        text.setText(message);
+
+        int color;
+        int iconRes;
+
+        if (isError == null) {
+            color = ContextCompat.getColor(requireContext(), R.color.colorWarning);
+            iconRes = R.drawable.ic_check_circle;
+        } else if (isError) {
+            color = ContextCompat.getColor(requireContext(), android.R.color.holo_red_dark);
+            iconRes = R.drawable.ic_error;
+        } else {
+            color = ContextCompat.getColor(requireContext(), R.color.colorBlue);
+            iconRes = R.drawable.ic_check_circle;
+        }
+
+        icon.setImageResource(iconRes);
+
+        GradientDrawable background = new GradientDrawable();
+        background.setCornerRadius(24f);
+        background.setColor(color);
+        container.setBackground(background);
+
+        Toast toast = new Toast(requireContext().getApplicationContext());
+        toast.setDuration(Toast.LENGTH_LONG);
+        toast.setView(layout);
+        toast.setGravity(Gravity.BOTTOM, 0, 120);
+        toast.show();
+    }
+
 }
