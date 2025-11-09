@@ -2,9 +2,11 @@ package com.hadoga.hadoga.view.fragments;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,15 +15,18 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -156,7 +161,7 @@ public class AgregarPacienteFragment extends Fragment {
 
                 } catch (Exception e) {
                     e.printStackTrace();
-                    Toast.makeText(requireContext(), "Error al cargar la imagen", Toast.LENGTH_SHORT).show();
+                    showSnackbarLikeToast("Error al cargar la imagen.", true);
                 }
             }
         }
@@ -196,11 +201,11 @@ public class AgregarPacienteFragment extends Fragment {
         }
 
         if (generoId == -1) {
-            Toast.makeText(requireContext(), "Selecciona un género", Toast.LENGTH_SHORT).show();
+            showSnackbarLikeToast("Selecciona un género.", true);
             return;
         }
         if (TextUtils.isEmpty(sucursalNombre) || sucursalNombre.equals("Selecciona una sucursal")) {
-            Toast.makeText(requireContext(), "Selecciona una sucursal", Toast.LENGTH_SHORT).show();
+            showSnackbarLikeToast("Selecciona una sucursal.", true);
             return;
         }
 
@@ -219,14 +224,16 @@ public class AgregarPacienteFragment extends Fragment {
 
             if (codigoSucursalSeleccionada == null) {
                 requireActivity().runOnUiThread(() ->
-                        Toast.makeText(requireContext(), "Sucursal no encontrada", Toast.LENGTH_SHORT).show());
+                        showSnackbarLikeToast("Sucursal no encontrada.", true)
+                );
                 return;
             }
 
             Paciente existente = db.pacienteDao().obtenerPorCorreo(correo);
             if (existente != null) {
                 requireActivity().runOnUiThread(() ->
-                        Toast.makeText(requireContext(), "El correo ingresado ya está registrado en otro paciente.", Toast.LENGTH_LONG).show());
+                        showSnackbarLikeToast("El correo ya está registrado en otro paciente.", true)
+                );
                 return;
             }
 
@@ -244,9 +251,7 @@ public class AgregarPacienteFragment extends Fragment {
                 nuevo.setEstadoSincronizacion("PENDIENTE");
                 db.pacienteDao().insertar(nuevo);
                 requireActivity().runOnUiThread(() -> {
-                    Toast.makeText(requireContext(),
-                            "Sin conexión. Paciente guardado localmente (pendiente de sincronizar).",
-                            Toast.LENGTH_LONG).show();
+                    showSnackbarLikeToast("Sin conexión. El paciente se guardó localmente.", null);
                     requireActivity().getSupportFragmentManager().popBackStack();
                 });
                 return;
@@ -285,9 +290,7 @@ public class AgregarPacienteFragment extends Fragment {
                         nuevo.setEstadoSincronizacion("SINCRONIZADO");
                         db.pacienteDao().insertar(nuevo);
                         requireActivity().runOnUiThread(() -> {
-                            Toast.makeText(requireContext(),
-                                    "Paciente guardado y sincronizado correctamente.",
-                                    Toast.LENGTH_SHORT).show();
+                            showSnackbarLikeToast("Paciente guardado y sincronizado correctamente.", false);
                             requireActivity().getSupportFragmentManager().popBackStack();
                         });
                     })
@@ -295,9 +298,7 @@ public class AgregarPacienteFragment extends Fragment {
                         nuevo.setEstadoSincronizacion("PENDIENTE");
                         db.pacienteDao().insertar(nuevo);
                         requireActivity().runOnUiThread(() -> {
-                            Toast.makeText(requireContext(),
-                                    "Error al sincronizar. Guardado localmente.",
-                                    Toast.LENGTH_LONG).show();
+                            showSnackbarLikeToast("Error al sincronizar. Se guardó localmente.", null);
                             requireActivity().getSupportFragmentManager().popBackStack();
                         });
                     });
@@ -377,7 +378,7 @@ public class AgregarPacienteFragment extends Fragment {
         String sucursalNombre = spSucursal.getSelectedItem() != null ? spSucursal.getSelectedItem().toString() : "";
 
         if (TextUtils.isEmpty(nombre) || TextUtils.isEmpty(apellido) || generoId == -1) {
-            Toast.makeText(requireContext(), "Completa los campos obligatorios", Toast.LENGTH_SHORT).show();
+            showSnackbarLikeToast("Completa los campos obligatorios.", true);
             return;
         }
 
@@ -396,7 +397,8 @@ public class AgregarPacienteFragment extends Fragment {
 
             if (codigoSucursalSeleccionada == null) {
                 requireActivity().runOnUiThread(() ->
-                        Toast.makeText(requireContext(), "Sucursal no encontrada", Toast.LENGTH_SHORT).show());
+                        showSnackbarLikeToast("Sucursal no encontrada.", true)
+                );
                 return;
             }
 
@@ -409,7 +411,8 @@ public class AgregarPacienteFragment extends Fragment {
             Paciente existente = db.pacienteDao().obtenerPorCorreo(correo);
             if (existente != null && existente.getId() != idPaciente) {
                 requireActivity().runOnUiThread(() ->
-                        Toast.makeText(requireContext(), "El correo ingresado ya pertenece a otro paciente.", Toast.LENGTH_LONG).show());
+                        showSnackbarLikeToast("El correo ingresado ya pertenece a otro paciente.", true)
+                );
                 return;
             }
 
@@ -427,9 +430,7 @@ public class AgregarPacienteFragment extends Fragment {
                 actualizado.setEstadoSincronizacion("PENDIENTE");
                 db.pacienteDao().actualizar(actualizado);
                 requireActivity().runOnUiThread(() -> {
-                    Toast.makeText(requireContext(),
-                            "Sin conexión. Paciente actualizado localmente (pendiente de sincronizar).",
-                            Toast.LENGTH_LONG).show();
+                    showSnackbarLikeToast("Sin conexión. Paciente actualizado localmente.", null);
                     requireActivity().getSupportFragmentManager().popBackStack();
                 });
                 return;
@@ -465,9 +466,7 @@ public class AgregarPacienteFragment extends Fragment {
                         actualizado.setEstadoSincronizacion("SINCRONIZADO");
                         db.pacienteDao().actualizar(actualizado);
                         requireActivity().runOnUiThread(() -> {
-                            Toast.makeText(requireContext(),
-                                    "Paciente actualizado y sincronizado correctamente.",
-                                    Toast.LENGTH_SHORT).show();
+                            showSnackbarLikeToast("Paciente actualizado y sincronizado correctamente.", false);
                             requireActivity().getSupportFragmentManager().popBackStack();
                         });
                     })
@@ -475,12 +474,48 @@ public class AgregarPacienteFragment extends Fragment {
                         actualizado.setEstadoSincronizacion("PENDIENTE");
                         db.pacienteDao().actualizar(actualizado);
                         requireActivity().runOnUiThread(() -> {
-                            Toast.makeText(requireContext(),
-                                    "Error al sincronizar. Actualizado localmente.",
-                                    Toast.LENGTH_LONG).show();
+                            showSnackbarLikeToast("Error al sincronizar. Actualizado localmente.", null);
                             requireActivity().getSupportFragmentManager().popBackStack();
                         });
                     });
         });
+    }
+
+    private void showSnackbarLikeToast(String message, Boolean isError) {
+        LayoutInflater inflater = getLayoutInflater();
+        View layout = inflater.inflate(R.layout.custom_toast, null);
+
+        LinearLayout container = layout.findViewById(R.id.toast_container);
+        TextView text = layout.findViewById(R.id.toast_message);
+        ImageView icon = layout.findViewById(R.id.toast_icon);
+
+        text.setText(message);
+
+        int color;
+        int iconRes;
+
+        if (isError == null) {
+            color = ContextCompat.getColor(requireContext(), R.color.colorWarning);
+            iconRes = R.drawable.ic_check_circle;
+        } else if (isError) {
+            color = ContextCompat.getColor(requireContext(), android.R.color.holo_red_dark);
+            iconRes = R.drawable.ic_error;
+        } else {
+            color = ContextCompat.getColor(requireContext(), R.color.colorBlue);
+            iconRes = R.drawable.ic_check_circle;
+        }
+
+        icon.setImageResource(iconRes);
+
+        GradientDrawable background = new GradientDrawable();
+        background.setCornerRadius(24f);
+        background.setColor(color);
+        container.setBackground(background);
+
+        Toast toast = new Toast(requireContext().getApplicationContext());
+        toast.setDuration(Toast.LENGTH_LONG);
+        toast.setView(layout);
+        toast.setGravity(Gravity.BOTTOM, 0, 120);
+        toast.show();
     }
 }
