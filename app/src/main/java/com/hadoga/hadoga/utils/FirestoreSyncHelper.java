@@ -101,9 +101,18 @@ public class FirestoreSyncHelper {
     private void sincronizarSucursales(Runnable onComplete) {
         List<Sucursal> pendientes = db.sucursalDao().getPendientes();
         for (Sucursal s : pendientes) {
+            Map<String, Object> data = new HashMap<>();
+            data.put("nombreSucursal", s.getNombreSucursal());
+            data.put("codigoSucursal", s.getCodigoSucursal());
+            data.put("departamento", s.getDepartamento());
+            data.put("direccionCompleta", s.getDireccionCompleta());
+            data.put("telefono", s.getTelefono());
+            data.put("correo", s.getCorreo());
+            data.put("estado_sincronizacion", "SINCRONIZADO");
+
             firestore.collection("sucursales")
                     .document(s.getCodigoSucursal())
-                    .set(s)
+                    .set(data)
                     .addOnSuccessListener(aVoid -> {
                         s.setEstadoSincronizacion("SINCRONIZADO");
                         Executors.newSingleThreadExecutor().execute(() -> db.sucursalDao().update(s));
@@ -119,8 +128,13 @@ public class FirestoreSyncHelper {
                         Sucursal remoto = doc.toObject(Sucursal.class);
                         remoto.setEstadoSincronizacion("SINCRONIZADO");
 
-                        if (local == null) db.sucursalDao().insert(remoto);
-                        else db.sucursalDao().update(remoto);
+                        if (local == null) {
+                            remoto.setId(0);
+                            db.sucursalDao().insert(remoto);
+                        } else {
+                            remoto.setId(local.getId());
+                            db.sucursalDao().update(remoto);
+                        }
                     }
                     onComplete.run();
                 }))
