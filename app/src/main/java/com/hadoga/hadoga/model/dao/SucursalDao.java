@@ -32,4 +32,7 @@ public interface SucursalDao {
 
     @Query("SELECT * FROM sucursal WHERE estado_sincronizacion = :estado")
     List<Sucursal> getByEstado(String estado);
+
+    @Query("SELECT * FROM sucursal WHERE estado_sincronizacion = 'ELIMINADO_PENDIENTE'")
+    List<Sucursal> getEliminadasPendientes();
 }

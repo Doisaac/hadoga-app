@@ -22,6 +22,7 @@ import com.hadoga.hadoga.model.entities.Paciente;
 import com.hadoga.hadoga.model.entities.Sucursal;
 import com.hadoga.hadoga.model.entities.Usuario;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -99,6 +100,22 @@ public class FirestoreSyncHelper {
     }
 
     private void sincronizarSucursales(Runnable onComplete) {
+
+        // Por si existe pendientes eliminarlas
+        List<Sucursal> eliminadasPendientes = db.sucursalDao().getEliminadasPendientes();
+        for (Sucursal s : eliminadasPendientes) {
+            firestore.collection("sucursales")
+                    .document(s.getCodigoSucursal())
+                    .delete()
+                    .addOnSuccessListener(aVoid -> Executors.newSingleThreadExecutor().execute(() -> {
+                        db.sucursalDao().delete(s);
+                    }))
+                    .addOnFailureListener(e -> {
+                        // Si falla la eliminación, mantenemos el estado para intentar luego
+                    });
+        }
+
+        // Subir pendientes de sincronizar
         List<Sucursal> pendientes = db.sucursalDao().getPendientes();
         for (Sucursal s : pendientes) {
             Map<String, Object> data = new HashMap<>();
@@ -119,11 +136,17 @@ public class FirestoreSyncHelper {
                     });
         }
 
+        // Descargarlas todas de firebase
         firestore.collection("sucursales")
                 .get()
                 .addOnSuccessListener(query -> Executors.newSingleThreadExecutor().execute(() -> {
+                    // Lista de códigos que existen en Firestore
+                    List<String> codigosRemotos = new ArrayList<>();
+
                     for (QueryDocumentSnapshot doc : query) {
                         String codigo = doc.getString("codigoSucursal");
+                        if (codigo != null) codigosRemotos.add(codigo);
+
                         Sucursal local = db.sucursalDao().getSucursalByCodigo(codigo);
                         Sucursal remoto = doc.toObject(Sucursal.class);
                         remoto.setEstadoSincronizacion("SINCRONIZADO");
@@ -136,6 +159,15 @@ public class FirestoreSyncHelper {
                             db.sucursalDao().update(remoto);
                         }
                     }
+
+                    // Elimina las que no existen en firebase, localmente
+                    List<Sucursal> locales = db.sucursalDao().getAllSucursales();
+                    for (Sucursal local : locales) {
+                        if (!codigosRemotos.contains(local.getCodigoSucursal())) {
+                            db.sucursalDao().delete(local);
+                        }
+                    }
+
                     onComplete.run();
                 }))
                 .addOnFailureListener(e -> onComplete.run());
