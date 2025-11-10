@@ -2,8 +2,10 @@ package com.hadoga.hadoga.view.fragments;
 
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -11,11 +13,15 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import com.hadoga.hadoga.R;
@@ -204,11 +210,11 @@ public class NuevaCitaFragment extends Fragment {
     private void guardarCita() {
         // Validaciones
         if (spSucursal.getSelectedItemPosition() == 0) {
-            Toast.makeText(requireContext(), "Selecciona una sucursal", Toast.LENGTH_SHORT).show();
+            showSnackbarLikeToast("Selecciona una sucursal.", true);
             return;
         }
         if (spPaciente.getSelectedItemPosition() == 0) {
-            Toast.makeText(requireContext(), "Selecciona un paciente", Toast.LENGTH_SHORT).show();
+            showSnackbarLikeToast("Selecciona un paciente.", true);
             return;
         }
 
@@ -235,11 +241,11 @@ public class NuevaCitaFragment extends Fragment {
 
         // Validar que no se haya dejado el placeholder seleccionado
         if (posSuc <= 0) {
-            Toast.makeText(requireContext(), "Selecciona una sucursal válida", Toast.LENGTH_SHORT).show();
+            showSnackbarLikeToast("Selecciona una sucursal válida.", true);
             return;
         }
         if (posPac <= 0) {
-            Toast.makeText(requireContext(), "Selecciona un paciente válido", Toast.LENGTH_SHORT).show();
+            showSnackbarLikeToast("Selecciona un paciente válido.", true);
             return;
         }
 
@@ -266,16 +272,16 @@ public class NuevaCitaFragment extends Fragment {
                     hasta = sdf.format(dHasta);
                 } catch (ParseException e) {
                     requireActivity().runOnUiThread(() ->
-                            Toast.makeText(requireContext(), "Fecha/hora inválida", Toast.LENGTH_SHORT).show());
+                            showSnackbarLikeToast("La fecha u hora ingresada no es válida.", true)
+                    );
                     return;
                 }
 
                 int conflictos = db.citaDao().contarSolapadas(codigoSucursal, desde, hasta);
                 if (conflictos > 0) {
                     requireActivity().runOnUiThread(() ->
-                            Toast.makeText(requireContext(),
-                                    "Ya existe una cita en ese rango de 30 minutos.",
-                                    Toast.LENGTH_LONG).show());
+                            showSnackbarLikeToast("Ya existe una cita registrada en ese horario.", true)
+                    );
                     return;
                 }
             }
@@ -289,13 +295,14 @@ public class NuevaCitaFragment extends Fragment {
                 db.citaDao().insertar(nueva);
                 subirCitaAFirebase(nueva);
                 requireActivity().runOnUiThread(() -> {
-                    Toast.makeText(requireContext(), "Cita creada exitosamente", Toast.LENGTH_SHORT).show();
+                    showSnackbarLikeToast("Cita creada correctamente.", false);
                     requireActivity().getSupportFragmentManager().popBackStack();
                 });
             } catch (Exception e) {
                 e.printStackTrace();
                 requireActivity().runOnUiThread(() ->
-                        Toast.makeText(requireContext(), "Error al crear la cita", Toast.LENGTH_SHORT).show());
+                        showSnackbarLikeToast("Ocurrió un error al crear la cita.", true)
+                );
             }
         });
     }
@@ -368,11 +375,11 @@ public class NuevaCitaFragment extends Fragment {
     private void actualizarCita(int idCita) {
         // Validaciones de selección
         if (spSucursal.getSelectedItemPosition() <= 0) {
-            Toast.makeText(requireContext(), "Selecciona la sucursal", Toast.LENGTH_SHORT).show();
+            showSnackbarLikeToast("Selecciona la sucursal.", true);
             return;
         }
         if (spPaciente.getSelectedItemPosition() <= 0) {
-            Toast.makeText(requireContext(), "Selecciona el paciente", Toast.LENGTH_SHORT).show();
+            showSnackbarLikeToast("Selecciona el paciente.", true);
             return;
         }
 
@@ -416,14 +423,14 @@ public class NuevaCitaFragment extends Fragment {
                     int conflictos = db.citaDao().contarSolapadasExcluyendo(idCita, codigoSucursal, desde, hasta);
                     if (conflictos > 0) {
                         requireActivity().runOnUiThread(() ->
-                                Toast.makeText(requireContext(),
-                                        "Ya existe una cita en ese rango de 30 minutos.",
-                                        Toast.LENGTH_LONG).show());
+                                showSnackbarLikeToast("Ya existe una cita en ese rango de 30 minutos.", true)
+                        );
                         return;
                     }
                 } catch (ParseException e) {
                     requireActivity().runOnUiThread(() ->
-                            Toast.makeText(requireContext(), "Fecha/hora inválida", Toast.LENGTH_SHORT).show());
+                            showSnackbarLikeToast("La fecha u hora ingresada no es válida.", true)
+                    );
                     return;
                 }
             }
@@ -437,13 +444,14 @@ public class NuevaCitaFragment extends Fragment {
                 db.citaDao().actualizar(act);
                 subirCitaAFirebase(act);
                 requireActivity().runOnUiThread(() -> {
-                    Toast.makeText(requireContext(), "Cita actualizada exitosamente", Toast.LENGTH_SHORT).show();
+                    showSnackbarLikeToast("Cita actualizada correctamente.", false);
                     requireActivity().getSupportFragmentManager().popBackStack();
                 });
             } catch (Exception e) {
                 e.printStackTrace();
                 requireActivity().runOnUiThread(() ->
-                        Toast.makeText(requireContext(), "Error al actualizar la cita", Toast.LENGTH_SHORT).show());
+                        showSnackbarLikeToast("Ocurrió un error al actualizar la cita.", true)
+                );
             }
         });
     }
@@ -467,5 +475,41 @@ public class NuevaCitaFragment extends Fragment {
                     });
                 });
     }
+    private void showSnackbarLikeToast(String message, Boolean isError) {
+        LayoutInflater inflater = getLayoutInflater();
+        View layout = inflater.inflate(R.layout.custom_toast, null);
 
+        LinearLayout container = layout.findViewById(R.id.toast_container);
+        TextView text = layout.findViewById(R.id.toast_message);
+        ImageView icon = layout.findViewById(R.id.toast_icon);
+
+        text.setText(message);
+
+        int color;
+        int iconRes;
+
+        if (isError == null) {
+            color = ContextCompat.getColor(requireContext(), R.color.colorWarning);
+            iconRes = R.drawable.ic_check_circle;
+        } else if (isError) {
+            color = ContextCompat.getColor(requireContext(), android.R.color.holo_red_dark);
+            iconRes = R.drawable.ic_error;
+        } else {
+            color = ContextCompat.getColor(requireContext(), R.color.colorBlue);
+            iconRes = R.drawable.ic_check_circle;
+        }
+
+        icon.setImageResource(iconRes);
+
+        GradientDrawable background = new GradientDrawable();
+        background.setCornerRadius(24f);
+        background.setColor(color);
+        container.setBackground(background);
+
+        Toast toast = new Toast(requireContext().getApplicationContext());
+        toast.setDuration(Toast.LENGTH_LONG);
+        toast.setView(layout);
+        toast.setGravity(Gravity.BOTTOM, 0, 120);
+        toast.show();
+    }
 }
