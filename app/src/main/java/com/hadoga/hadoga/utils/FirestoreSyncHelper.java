@@ -334,7 +334,7 @@ public class FirestoreSyncHelper {
     }
 
     private void sincronizarCitas(Runnable onComplete) {
-        // 1. Eliminar citas marcadas como "ELIMINADO_PENDIENTE"
+        // Eliminar citas marcadas como pendiente
         List<Cita> eliminadasPendientes = db.citaDao().getEliminadosPendientes();
         for (Cita c : eliminadasPendientes) {
             firestore.collection("citas")
@@ -348,37 +348,65 @@ public class FirestoreSyncHelper {
                     });
         }
 
-        // 2. Subir citas pendientes (nuevas o actualizadas)
+        // Subir citas pendientes a firebase
         List<Cita> pendientes = db.citaDao().getPendientes();
         for (Cita c : pendientes) {
+            Map<String, Object> data = new HashMap<>();
+            data.put("idFirebase", c.getIdFirebase());
+            data.put("codigoSucursalAsignada", c.getCodigoSucursalAsignada());
+            data.put("pacienteId", c.getPacienteId());
+            data.put("fechaHora", c.getFechaHora());
+            data.put("motivo", c.getMotivo());
+            data.put("notas", c.getNotas());
+            data.put("estado", c.getEstado());
+            data.put("estado_sincronizacion", "SINCRONIZADO");
+
             firestore.collection("citas")
                     .document(c.getIdFirebase())
-                    .set(c)
+                    .set(data)
                     .addOnSuccessListener(aVoid -> {
                         c.setEstadoSincronizacion("SINCRONIZADO");
                         Executors.newSingleThreadExecutor().execute(() -> db.citaDao().actualizar(c));
-                    })
-                    .addOnFailureListener(e -> {
-                        // Si falla, se mantiene como pendiente
                     });
         }
 
-        // 3. Descargar citas desde Firestore
+        // Descarga todas las citas de firebase
         firestore.collection("citas")
                 .get()
                 .addOnSuccessListener(query -> Executors.newSingleThreadExecutor().execute(() -> {
-                    for (com.google.firebase.firestore.QueryDocumentSnapshot doc : query) {
-                        Cita remota = doc.toObject(Cita.class);
-                        remota.setEstadoSincronizacion("SINCRONIZADO");
+                    // Lista de IDs que existen en Firestore
+                    List<String> idsRemotos = new ArrayList<>();
 
-                        Cita local = db.citaDao().getByFirebaseId(remota.getIdFirebase());
-                        if (local == null) db.citaDao().insertar(remota);
-                        else db.citaDao().actualizar(remota);
+                    for (QueryDocumentSnapshot doc : query) {
+                        String idFirebase = doc.getString("idFirebase");
+                        if (idFirebase != null) idsRemotos.add(idFirebase);
+
+                        Cita local = db.citaDao().getByFirebaseId(idFirebase);
+                        Cita remoto = doc.toObject(Cita.class);
+                        remoto.setEstadoSincronizacion("SINCRONIZADO");
+
+                        if (local == null) {
+                            remoto.setId(0);
+                            db.citaDao().insertar(remoto);
+                        } else {
+                            remoto.setId(local.getId());
+                            db.citaDao().actualizar(remoto);
+                        }
                     }
+
+                    // Eliminar localmente las eliminadas de firebase
+                    List<Cita> locales = db.citaDao().obtenerTodas();
+                    for (Cita local : locales) {
+                        if (!idsRemotos.contains(local.getIdFirebase())) {
+                            db.citaDao().eliminar(local);
+                        }
+                    }
+
                     onComplete.run();
                 }))
                 .addOnFailureListener(e -> onComplete.run());
     }
+
     private void showSnackbarLikeToast(String message, boolean isError) {
         LayoutInflater inflater = LayoutInflater.from(context);
         View layout = inflater.inflate(R.layout.custom_toast, null);
