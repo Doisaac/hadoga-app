@@ -41,4 +41,10 @@ public interface DoctorDao {
 
     @Query("SELECT * FROM doctor WHERE sucursal_asignada = :codigoSucursal")
     List<Doctor> getDoctoresDeSucursal(String codigoSucursal);
+
+    @Query("SELECT * FROM doctor WHERE estado_sincronizacion = 'ELIMINADO_PENDIENTE'")
+    List<Doctor> getEliminadosPendientes();
+
+    @Query("SELECT * FROM doctor")
+    List<Doctor> getAllDoctores();
 }

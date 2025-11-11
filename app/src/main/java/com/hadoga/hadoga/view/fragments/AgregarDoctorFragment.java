@@ -41,7 +41,9 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Executors;
 
 public class AgregarDoctorFragment extends Fragment {
@@ -194,9 +196,20 @@ public class AgregarDoctorFragment extends Fragment {
             }
 
             FirebaseFirestore firestore = FirebaseService.getInstance();
+            Map<String, Object> data = new HashMap<>();
+            data.put("nombre", actualizado.getNombre());
+            data.put("apellido", actualizado.getApellido());
+            data.put("fechaNacimiento", actualizado.getFechaNacimiento());
+            data.put("numeroColegiado", actualizado.getNumeroColegiado());
+            data.put("sexo", actualizado.getSexo());
+            data.put("especialidad", actualizado.getEspecialidad());
+            data.put("sucursalAsignada", actualizado.getSucursalAsignada());
+            data.put("fotoUri", actualizado.getFotoUri());
+            data.put("estado_sincronizacion", "SINCRONIZADO");
+
             firestore.collection("doctores")
                     .document(actualizado.getNumeroColegiado())
-                    .set(actualizado)
+                    .set(data)
                     .addOnSuccessListener(aVoid -> Executors.newSingleThreadExecutor().execute(() -> {
                         actualizado.setEstadoSincronizacion("SINCRONIZADO");
                         db.doctorDao().actualizar(actualizado);
@@ -410,9 +423,21 @@ public class AgregarDoctorFragment extends Fragment {
 
                 // Si hay conexión, intentar subir a Firestore
                 var firestore = FirebaseService.getInstance();
+
+                Map<String, Object> data = new HashMap<>();
+                data.put("nombre", nuevoDoctor.getNombre());
+                data.put("apellido", nuevoDoctor.getApellido());
+                data.put("fechaNacimiento", nuevoDoctor.getFechaNacimiento());
+                data.put("numeroColegiado", nuevoDoctor.getNumeroColegiado());
+                data.put("sexo", nuevoDoctor.getSexo());
+                data.put("especialidad", nuevoDoctor.getEspecialidad());
+                data.put("sucursalAsignada", nuevoDoctor.getSucursalAsignada());
+                data.put("fotoUri", nuevoDoctor.getFotoUri());
+                data.put("estado_sincronizacion", "SINCRONIZADO");
+
                 firestore.collection("doctores")
                         .document(nuevoDoctor.getNumeroColegiado())
-                        .set(nuevoDoctor)
+                        .set(data)
                         .addOnSuccessListener(aVoid -> Executors.newSingleThreadExecutor().execute(() -> {
                             nuevoDoctor.setEstadoSincronizacion("SINCRONIZADO");
                             db.doctorDao().insertar(nuevoDoctor);

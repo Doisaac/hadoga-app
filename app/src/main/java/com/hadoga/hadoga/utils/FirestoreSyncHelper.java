@@ -174,29 +174,75 @@ public class FirestoreSyncHelper {
     }
 
     private void sincronizarDoctores(Runnable onComplete) {
-        List<Doctor> pendientes = db.doctorDao().getPendientes();
-        for (Doctor d : pendientes) {
+        // Eliminar pendientes de eliminar
+        List<Doctor> eliminadosPendientes = db.doctorDao().getEliminadosPendientes();
+        for (Doctor d : eliminadosPendientes) {
             firestore.collection("doctores")
                     .document(d.getNumeroColegiado())
-                    .set(d)
+                    .delete()
+                    .addOnSuccessListener(aVoid -> Executors.newSingleThreadExecutor().execute(() -> {
+                        db.doctorDao().eliminar(d);
+                    }))
+                    .addOnFailureListener(e -> {
+                        // Mantiene como pendiente si falla la eliminación
+                    });
+        }
+
+        // Subir pendientes de sincronizar
+        List<Doctor> pendientes = db.doctorDao().getPendientes();
+        for (Doctor d : pendientes) {
+            Map<String, Object> data = new HashMap<>();
+            data.put("nombre", d.getNombre());
+            data.put("apellido", d.getApellido());
+            data.put("fechaNacimiento", d.getFechaNacimiento());
+            data.put("numeroColegiado", d.getNumeroColegiado());
+            data.put("sexo", d.getSexo());
+            data.put("especialidad", d.getEspecialidad());
+            data.put("sucursalAsignada", d.getSucursalAsignada());
+            data.put("fotoUri", d.getFotoUri());
+            data.put("estado_sincronizacion", "SINCRONIZADO");
+
+            firestore.collection("doctores")
+                    .document(d.getNumeroColegiado())
+                    .set(data)
                     .addOnSuccessListener(aVoid -> {
                         d.setEstadoSincronizacion("SINCRONIZADO");
                         Executors.newSingleThreadExecutor().execute(() -> db.doctorDao().actualizar(d));
                     });
         }
 
+        // Descargar todos los doctores de firebase
         firestore.collection("doctores")
                 .get()
                 .addOnSuccessListener(query -> Executors.newSingleThreadExecutor().execute(() -> {
+                    // Lista de colegiados que existen en Firestore
+                    List<String> colegiadosRemotos = new ArrayList<>();
+
                     for (QueryDocumentSnapshot doc : query) {
                         String colegiado = doc.getString("numeroColegiado");
+                        if (colegiado != null) colegiadosRemotos.add(colegiado);
+
                         Doctor local = db.doctorDao().getDoctorByColegiado(colegiado);
                         Doctor remoto = doc.toObject(Doctor.class);
                         remoto.setEstadoSincronizacion("SINCRONIZADO");
 
-                        if (local == null) db.doctorDao().insertar(remoto);
-                        else db.doctorDao().actualizar(remoto);
+                        if (local == null) {
+                            remoto.setId(0);
+                            db.doctorDao().insertar(remoto);
+                        } else {
+                            remoto.setId(local.getId());
+                            db.doctorDao().actualizar(remoto);
+                        }
                     }
+
+                    // Elimina localmente los que ya no existen en firebase
+                    List<Doctor> locales = db.doctorDao().getAllDoctores();
+                    for (Doctor local : locales) {
+                        if (!colegiadosRemotos.contains(local.getNumeroColegiado())) {
+                            db.doctorDao().eliminar(local);
+                        }
+                    }
+
                     onComplete.run();
                 }))
                 .addOnFailureListener(e -> onComplete.run());
