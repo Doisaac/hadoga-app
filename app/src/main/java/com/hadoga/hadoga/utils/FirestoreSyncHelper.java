@@ -249,9 +249,7 @@ public class FirestoreSyncHelper {
     }
 
     private void sincronizarPacientes(Runnable onComplete) {
-        List<Paciente> pendientes = db.pacienteDao().getPendientes();
-
-        // Eliminar los pacientes marcados como "ELIMINADO_PENDIENTE"
+        // Eliminar pacientes marcados como pendiente
         List<Paciente> eliminadosPendientes = db.pacienteDao().getEliminadosPendientes();
         for (Paciente p : eliminadosPendientes) {
             firestore.collection("pacientes")
@@ -261,34 +259,75 @@ public class FirestoreSyncHelper {
                         db.pacienteDao().eliminar(p);
                     }))
                     .addOnFailureListener(e -> {
-                        // pendientes de eliminar
+                        // Mantener como pendiente si falla la eliminación
                     });
         }
 
-        // Subir los pendientes locales a Firestore
+        // Pendientes de sincronizar se suben a firebase
+        List<Paciente> pendientes = db.pacienteDao().getPendientes();
         for (Paciente p : pendientes) {
+            Map<String, Object> data = new HashMap<>();
+            data.put("nombre", p.getNombre());
+            data.put("apellido", p.getApellido());
+            data.put("fechaNacimiento", p.getFechaNacimiento());
+            data.put("sexo", p.getSexo());
+            data.put("correoElectronico", p.getCorreoElectronico());
+            data.put("numeroTelefono", p.getNumeroTelefono());
+            data.put("direccion", p.getDireccion());
+            data.put("observaciones", p.getObservaciones());
+            data.put("diabetes", p.isDiabetes());
+            data.put("anemia", p.isAnemia());
+            data.put("gastritis", p.isGastritis());
+            data.put("hipertensionHta", p.isHipertensionHta());
+            data.put("hemorragias", p.isHemorragias());
+            data.put("asma", p.isAsma());
+            data.put("trastornosCardiacos", p.isTrastornosCardiacos());
+            data.put("convulsiones", p.isConvulsiones());
+            data.put("tiroides", p.isTiroides());
+            data.put("codigoSucursalAsignada", p.getCodigoSucursalAsignada());
+            data.put("fotoUri", p.getFotoUri());
+            data.put("estado_sincronizacion", "SINCRONIZADO");
+
             firestore.collection("pacientes")
                     .document(p.getCorreoElectronico())
-                    .set(p)
+                    .set(data)
                     .addOnSuccessListener(aVoid -> {
                         p.setEstadoSincronizacion("SINCRONIZADO");
                         Executors.newSingleThreadExecutor().execute(() -> db.pacienteDao().actualizar(p));
                     });
         }
 
-        // Descargar los datos más recientes desde Firestore
+        // Descarga todos los de firebase
         firestore.collection("pacientes")
                 .get()
                 .addOnSuccessListener(query -> Executors.newSingleThreadExecutor().execute(() -> {
+                    List<String> correosRemotos = new ArrayList<>();
+
                     for (QueryDocumentSnapshot doc : query) {
                         String correo = doc.getString("correoElectronico");
+                        if (correo != null) correosRemotos.add(correo);
+
+                        Paciente local = db.pacienteDao().obtenerPorCorreo(correo);
                         Paciente remoto = doc.toObject(Paciente.class);
                         remoto.setEstadoSincronizacion("SINCRONIZADO");
 
-                        Paciente local = db.pacienteDao().obtenerPorCorreo(correo);
-                        if (local == null) db.pacienteDao().insertar(remoto);
-                        else db.pacienteDao().actualizar(remoto);
+                        if (local == null) {
+                            remoto.setId(0);
+                            db.pacienteDao().insertar(remoto);
+                        } else {
+                            remoto.setId(local.getId());
+                            db.pacienteDao().actualizar(remoto);
+                        }
                     }
+
+                    // Elimina localmente los pendientes de borrar
+                    List<Paciente> locales = db.pacienteDao().obtenerTodos();
+                    for (Paciente local : locales) {
+                        if (!correosRemotos.contains(local.getCorreoElectronico())) {
+                            db.pacienteDao().eliminar(local);
+                        }
+                    }
+
                     onComplete.run();
                 }))
                 .addOnFailureListener(e -> onComplete.run());
