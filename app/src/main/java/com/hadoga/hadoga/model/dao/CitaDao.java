@@ -33,8 +33,8 @@ public interface CitaDao {
     @Query("SELECT * FROM cita WHERE codigo_sucursal_asignada = :codigoSucursal ORDER BY fecha_hora DESC")
     List<Cita> obtenerPorSucursal(String codigoSucursal);
 
-    @Query("SELECT * FROM cita WHERE paciente_id = :pacienteId ORDER BY fecha_hora DESC")
-    List<Cita> obtenerPorPaciente(int pacienteId);
+    @Query("SELECT * FROM cita WHERE paciente_correo = :correo ORDER BY fecha_hora DESC")
+    List<Cita> obtenerPorPaciente(String correo);
 
     @Query("SELECT * FROM cita WHERE estado = :estado ORDER BY fecha_hora DESC")
     List<Cita> obtenerPorEstado(String estado);

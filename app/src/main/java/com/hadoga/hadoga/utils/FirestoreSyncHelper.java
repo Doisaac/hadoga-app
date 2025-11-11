@@ -354,7 +354,7 @@ public class FirestoreSyncHelper {
             Map<String, Object> data = new HashMap<>();
             data.put("idFirebase", c.getIdFirebase());
             data.put("codigoSucursalAsignada", c.getCodigoSucursalAsignada());
-            data.put("pacienteId", c.getPacienteId());
+            data.put("pacienteCorreo", c.getPacienteCorreo());
             data.put("fechaHora", c.getFechaHora());
             data.put("motivo", c.getMotivo());
             data.put("notas", c.getNotas());

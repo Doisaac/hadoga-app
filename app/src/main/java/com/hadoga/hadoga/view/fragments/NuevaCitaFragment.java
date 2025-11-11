@@ -36,8 +36,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.Executors;
 
 public class NuevaCitaFragment extends Fragment {
@@ -142,11 +144,11 @@ public class NuevaCitaFragment extends Fragment {
     }
 
     private void cargarPacientesPorSucursal(String codigoSucursal) {
-        cargarPacientesPorSucursal(codigoSucursal, -1);
+        cargarPacientesPorSucursal(codigoSucursal, null);
     }
 
     // Sobrecarga del método: permite cargar pacientes y, opcionalmente, seleccionar uno específico
-    private void cargarPacientesPorSucursal(String codigoSucursal, int pacienteSeleccionadoId) {
+    private void cargarPacientesPorSucursal(String codigoSucursal, String pacienteSeleccionadoCorreo) {
         Executors.newSingleThreadExecutor().execute(() -> {
             pacientes = db.pacienteDao().obtenerPorSucursal(codigoSucursal);
             requireActivity().runOnUiThread(() -> {
@@ -174,7 +176,7 @@ public class NuevaCitaFragment extends Fragment {
                 for (int i = 0; i < pacientes.size(); i++) {
                     Paciente p = pacientes.get(i);
                     ad.add(p.getNombre() + " " + p.getApellido());
-                    if (p.getId() == pacienteSeleccionadoId) posSel = i + 1; // +1 por placeholder
+                    if (p.getCorreoElectronico().equals(pacienteSeleccionadoCorreo)) posSel = i + 1;
                 }
 
                 spPaciente.setAdapter(ad);
@@ -250,7 +252,7 @@ public class NuevaCitaFragment extends Fragment {
         }
 
         String codigoSucursal = sucursales.get(posSuc - 1).getCodigoSucursal();
-        int pacienteId = pacientes.get(posPac - 1).getId();
+        String correoPaciente = pacientes.get(posPac - 1).getCorreoElectronico();
 
 
         // Regla de solapamiento (solo aplica si estado = pendiente)
@@ -289,7 +291,7 @@ public class NuevaCitaFragment extends Fragment {
             // Insertar o actualizar si estuviera en modo edición
             String idFirebase = java.util.UUID.randomUUID().toString();
 
-            Cita nueva = new Cita(idFirebase, codigoSucursal, pacienteId, fechaHora, motivo, notas, estadoSel);
+            Cita nueva = new Cita(idFirebase, codigoSucursal, correoPaciente, fechaHora, motivo, notas, estadoSel);
 
             try {
                 db.citaDao().insertar(nueva);
@@ -340,7 +342,7 @@ public class NuevaCitaFragment extends Fragment {
                 spSucursal.setSelection(posSuc);
 
                 // Pacientes de esa sucursal
-                cargarPacientesPorSucursal(c.getCodigoSucursalAsignada(), c.getPacienteId());
+                cargarPacientesPorSucursal(c.getCodigoSucursalAsignada(), c.getPacienteCorreo());
 
                 // Listener
                 spSucursal.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
@@ -405,7 +407,7 @@ public class NuevaCitaFragment extends Fragment {
 
         // Obtener IDs considerando el placeholder
         String codigoSucursal = sucursales.get(spSucursal.getSelectedItemPosition() - 1).getCodigoSucursal();
-        int pacienteId = pacientes.get(spPaciente.getSelectedItemPosition() - 1).getId();
+        String correoPaciente = pacientes.get(spPaciente.getSelectedItemPosition() - 1).getCorreoElectronico();
 
         Executors.newSingleThreadExecutor().execute(() -> {
             // Validar solapamiento solo si el estado es pendiente
@@ -437,7 +439,7 @@ public class NuevaCitaFragment extends Fragment {
 
             // Crear objeto actualizado
             Cita original = db.citaDao().obtenerPorId(idCita);
-            Cita act = new Cita(original.getIdFirebase(), codigoSucursal, pacienteId, fechaHora, motivo, notas, estadoSel);
+            Cita act = new Cita(original.getIdFirebase(), codigoSucursal, correoPaciente, fechaHora, motivo, notas, estadoSel);
             act.setId(idCita);
 
             try {
@@ -459,9 +461,19 @@ public class NuevaCitaFragment extends Fragment {
     private void subirCitaAFirebase(Cita cita) {
         com.google.firebase.firestore.FirebaseFirestore firestore = com.google.firebase.firestore.FirebaseFirestore.getInstance();
 
+        Map<String, Object> data = new HashMap<>();
+        data.put("idFirebase", cita.getIdFirebase());
+        data.put("codigoSucursalAsignada", cita.getCodigoSucursalAsignada());
+        data.put("pacienteCorreo", cita.getPacienteCorreo());
+        data.put("fechaHora", cita.getFechaHora());
+        data.put("motivo", cita.getMotivo());
+        data.put("notas", cita.getNotas());
+        data.put("estado", cita.getEstado());
+        data.put("estado_sincronizacion", "SINCRONIZADO");
+
         firestore.collection("citas")
                 .document(cita.getIdFirebase())
-                .set(cita)
+                .set(data)
                 .addOnSuccessListener(aVoid -> {
                     Executors.newSingleThreadExecutor().execute(() -> {
                         cita.setEstadoSincronizacion("SINCRONIZADO");
@@ -475,6 +487,7 @@ public class NuevaCitaFragment extends Fragment {
                     });
                 });
     }
+
     private void showSnackbarLikeToast(String message, Boolean isError) {
         LayoutInflater inflater = getLayoutInflater();
         View layout = inflater.inflate(R.layout.custom_toast, null);

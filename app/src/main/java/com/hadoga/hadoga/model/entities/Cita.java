@@ -17,18 +17,18 @@ import java.io.Serializable;
                         entity = Sucursal.class,
                         parentColumns = "codigo_sucursal",
                         childColumns = "codigo_sucursal_asignada",
-                        onDelete = ForeignKey.CASCADE
+                        onDelete = CASCADE
                 ),
                 @ForeignKey(
                         entity = Paciente.class,
-                        parentColumns = "id",
-                        childColumns = "paciente_id",
-                        onDelete = ForeignKey.CASCADE
+                        parentColumns = "correo_electronico",
+                        childColumns = "paciente_correo",
+                        onDelete = CASCADE
                 )
         },
         indices = {
                 @Index("codigo_sucursal_asignada"),
-                @Index("paciente_id")
+                @Index("paciente_correo")
         }
 )
 public class Cita implements Serializable {
@@ -41,8 +41,8 @@ public class Cita implements Serializable {
     @ColumnInfo(name = "codigo_sucursal_asignada")
     private String codigoSucursalAsignada;
 
-    @ColumnInfo(name = "paciente_id")
-    private int pacienteId;
+    @ColumnInfo(name = "paciente_correo")
+    private String pacienteCorreo;
 
     @ColumnInfo(name = "fecha_hora")
     private String fechaHora;
@@ -60,11 +60,11 @@ public class Cita implements Serializable {
     private String estadoSincronizacion = "PENDIENTE";
 
     // Constructor principal
-    public Cita(String idFirebase, String codigoSucursalAsignada, int pacienteId,
+    public Cita(String idFirebase, String codigoSucursalAsignada, String pacienteCorreo,
                 String fechaHora, String motivo, String notas, String estado) {
         this.idFirebase = idFirebase;
         this.codigoSucursalAsignada = codigoSucursalAsignada;
-        this.pacienteId = pacienteId;
+        this.pacienteCorreo = pacienteCorreo;
         this.fechaHora = fechaHora;
         this.motivo = motivo;
         this.notas = notas;
@@ -91,12 +91,12 @@ public class Cita implements Serializable {
         this.codigoSucursalAsignada = codigoSucursalAsignada;
     }
 
-    public int getPacienteId() {
-        return pacienteId;
+    public String getPacienteCorreo() {
+        return pacienteCorreo;
     }
 
-    public void setPacienteId(int pacienteId) {
-        this.pacienteId = pacienteId;
+    public void setPacienteCorreo(String pacienteCorreo) {
+        this.pacienteCorreo = pacienteCorreo;
     }
 
     public String getFechaHora() {

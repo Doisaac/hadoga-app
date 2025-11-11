@@ -130,7 +130,7 @@ public class ListaCitasFragment extends Fragment {
         android.widget.Button btnBorrar = cardView.findViewById(R.id.btnBorrarCita);
 
         // Obtener el paciente
-        Paciente paciente = db.pacienteDao().obtenerPorId(cita.getPacienteId());
+        Paciente paciente = db.pacienteDao().obtenerPorCorreo(cita.getPacienteCorreo());
         String nombreCompleto = (paciente != null)
                 ? paciente.getNombre() + " " + paciente.getApellido()
                 : "Paciente desconocido";
