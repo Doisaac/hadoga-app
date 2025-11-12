@@ -103,26 +103,29 @@ public class AgregarDoctorFragment extends Fragment {
             if (posEsp >= 0) spEspecialidad.setSelection(posEsp);
         }
 
-        // Spinner de sucursal, ojo cargar después de obtener de la BD
+        // Spinner de sucursal, se llena y luego selecciona la correspondiente
         Executors.newSingleThreadExecutor().execute(() -> {
             List<Sucursal> listaSucursales = db.sucursalDao().getAllSucursales();
+
             requireActivity().runOnUiThread(() -> {
-                ArrayAdapter<String> adapterSucursal = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item);
+                ArrayAdapter<String> adapterSucursal = new ArrayAdapter<>(
+                        requireContext(), android.R.layout.simple_spinner_item);
                 adapterSucursal.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 
-                int posSeleccionada = -1;
+                adapterSucursal.add("Selecciona una sucursal");
+
+                int posSeleccionada = 0; // por defecto
                 for (int i = 0; i < listaSucursales.size(); i++) {
                     Sucursal s = listaSucursales.get(i);
                     adapterSucursal.add(s.getNombreSucursal());
 
-                    // Comparar usando el código de sucursal
                     if (s.getCodigoSucursal().equals(d.getSucursalAsignada())) {
-                        posSeleccionada = i;
+                        posSeleccionada = i + 1;
                     }
                 }
 
                 spSucursal.setAdapter(adapterSucursal);
-                if (posSeleccionada >= 0) spSucursal.setSelection(posSeleccionada);
+                spSucursal.setSelection(posSeleccionada);
             });
         });
 
