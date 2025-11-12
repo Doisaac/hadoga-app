@@ -150,13 +150,13 @@ public class ListaPacientesFragment extends Fragment {
                 if (file.exists()) {
                     ivFoto.setImageURI(Uri.fromFile(file));
                 } else {
-                    ivFoto.setImageResource(R.drawable.ic_user_placeholder);
+                    ivFoto.setImageResource(R.drawable.ic_user_placeholder2);
                 }
             } catch (Exception e) {
-                ivFoto.setImageResource(R.drawable.ic_user_placeholder);
+                ivFoto.setImageResource(R.drawable.ic_user_placeholder2);
             }
         } else {
-            ivFoto.setImageResource(R.drawable.ic_user_placeholder);
+            ivFoto.setImageResource(R.drawable.ic_user_placeholder2);
         }
 
         // Editar

@@ -324,7 +324,7 @@ public class AgregarPacienteFragment extends Fragment {
             fotoSeleccionadaUri = Uri.parse(p.getFotoUri());
             ivFotoPaciente.setImageURI(fotoSeleccionadaUri);
         } else {
-            ivFotoPaciente.setImageResource(R.drawable.ic_user_placeholder);
+            ivFotoPaciente.setImageResource(R.drawable.ic_user_placeholder2);
         }
 
         // Checkboxes

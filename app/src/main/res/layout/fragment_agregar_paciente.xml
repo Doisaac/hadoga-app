@@ -37,7 +37,7 @@
                 android:background="@drawable/bg_circle_photo"
                 android:clipToOutline="true"
                 android:scaleType="centerCrop"
-                android:src="@drawable/ic_user_placeholder" />
+                android:src="@drawable/ic_user_placeholder2" />
 
             <View
                 android:layout_width="0dp"
