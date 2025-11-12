@@ -110,21 +110,23 @@ public class ListaSucursalesFragment extends Fragment {
 
     private void borrarSucursal(Sucursal sucursal) {
         Executors.newSingleThreadExecutor().execute(() -> {
-            // Verificar si existen doctores asignados a la sucursal
+            // Verificar si existen doctores o pacientes asignados a la sucursal
             var doctoresAsociados = db.doctorDao().getDoctoresDeSucursal(sucursal.getCodigoSucursal());
+            var pacientesAsociados = db.pacienteDao().obtenerPorSucursal(sucursal.getCodigoSucursal());
 
             requireActivity().runOnUiThread(() -> {
                 if (!doctoresAsociados.isEmpty()) {
-                    // Si hay doctores, mostrar aviso
                     showSnackbarLikeToast("Primero elimina los doctores asociados a esta sucursal antes de borrarla.", true);
-                } else {
-                    // Si no hay doctores, continuar con el diálogo de confirmación normal
+                }
+                else if (!pacientesAsociados.isEmpty()) {
+                    showSnackbarLikeToast("Primero elimina los pacientes asociados a esta sucursal antes de borrarla.", true);
+                }
+                else {
+                    // Si no hay doctores ni pacientes, mostrar diálogo de confirmación
                     new AlertDialog.Builder(requireContext())
                             .setTitle("Confirmar eliminación")
                             .setMessage("¿Seguro que deseas eliminar la sucursal \"" + sucursal.getNombreSucursal() + "\"?")
-                            .setPositiveButton("Eliminar", (dialog, which) -> {
-                                eliminarSucursalDeBD(sucursal);
-                            })
+                            .setPositiveButton("Eliminar", (dialog, which) -> eliminarSucursalDeBD(sucursal))
                             .setNegativeButton("Cancelar", (dialog, which) -> dialog.dismiss())
                             .show();
                 }

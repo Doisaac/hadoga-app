@@ -182,12 +182,25 @@ public class ListaPacientesFragment extends Fragment {
     }
 
     private void borrarPaciente(Paciente paciente) {
-        new AlertDialog.Builder(requireContext())
-                .setTitle("Confirmar eliminación")
-                .setMessage("¿Seguro que deseas eliminar al paciente \"" + paciente.getNombre() + " " + paciente.getApellido() + "\"?")
-                .setPositiveButton("Eliminar", (dialog, which) -> eliminarPacienteDeBD(paciente))
-                .setNegativeButton("Cancelar", (dialog, which) -> dialog.dismiss())
-                .show();
+        Executors.newSingleThreadExecutor().execute(() -> {
+            // Verificar si tiene citas asociadas
+            int cantidadCitas = db.citaDao().obtenerPorPaciente(paciente.getCorreoElectronico()).size();
+
+            requireActivity().runOnUiThread(() -> {
+                if (cantidadCitas > 0) {
+                    showSnackbarLikeToast("No puedes eliminar al paciente, tiene citas registradas.", true);
+                } else {
+                    // Si no tiene citas
+                    new AlertDialog.Builder(requireContext())
+                            .setTitle("Confirmar eliminación")
+                            .setMessage("¿Seguro que deseas eliminar al paciente \"" +
+                                    paciente.getNombre() + " " + paciente.getApellido() + "\"?")
+                            .setPositiveButton("Eliminar", (dialog, which) -> eliminarPacienteDeBD(paciente))
+                            .setNegativeButton("Cancelar", (dialog, which) -> dialog.dismiss())
+                            .show();
+                }
+            });
+        });
     }
 
     private void eliminarPacienteDeBD(Paciente paciente) {
