@@ -190,12 +190,15 @@ public class ListaCitasFragment extends Fragment {
             } else {
                 cita.setEstadoSincronizacion("ELIMINADO_PENDIENTE");
                 db.citaDao().actualizar(cita);
-            }
 
-            requireActivity().runOnUiThread(() -> {
-                showSnackbarLikeToast("Cita eliminada correctamente.", false);
-                cargarCitas(null);
-            });
+                requireActivity().runOnUiThread(() -> {
+                    showSnackbarLikeToast("Cita eliminada localmente (sin conexión).", null);
+                    // Refresca al final
+                    cargarCitas(spFiltroSucursal.getSelectedItemPosition() == 0
+                            ? null
+                            : listaSucursales.get(spFiltroSucursal.getSelectedItemPosition() - 1).getCodigoSucursal());
+                });
+            }
         });
     }
 
@@ -205,18 +208,30 @@ public class ListaCitasFragment extends Fragment {
         firestore.collection("citas")
                 .document(cita.getIdFirebase())
                 .delete()
-                .addOnSuccessListener(aVoid -> {
-                    Executors.newSingleThreadExecutor().execute(() -> {
-                        db.citaDao().eliminar(cita);
+                .addOnSuccessListener(aVoid -> Executors.newSingleThreadExecutor().execute(() -> {
+                    db.citaDao().eliminar(cita);
+
+                    requireActivity().runOnUiThread(() -> {
+                        showSnackbarLikeToast("Cita eliminada correctamente.", false);
+                        // Refresca después de confirmar que ya se eliminó
+                        cargarCitas(spFiltroSucursal.getSelectedItemPosition() == 0
+                                ? null
+                                : listaSucursales.get(spFiltroSucursal.getSelectedItemPosition() - 1).getCodigoSucursal());
                     });
-                })
-                .addOnFailureListener(e -> {
-                    Executors.newSingleThreadExecutor().execute(() -> {
-                        cita.setEstadoSincronizacion("ELIMINADO_PENDIENTE");
-                        db.citaDao().actualizar(cita);
+                }))
+                .addOnFailureListener(e -> Executors.newSingleThreadExecutor().execute(() -> {
+                    cita.setEstadoSincronizacion("ELIMINADO_PENDIENTE");
+                    db.citaDao().actualizar(cita);
+
+                    requireActivity().runOnUiThread(() -> {
+                        showSnackbarLikeToast("Error al eliminar en la nube. Se marcó para eliminar luego.", true);
+                        cargarCitas(spFiltroSucursal.getSelectedItemPosition() == 0
+                                ? null
+                                : listaSucursales.get(spFiltroSucursal.getSelectedItemPosition() - 1).getCodigoSucursal());
                     });
-                });
+                }));
     }
+
     private void showSnackbarLikeToast(String message, Boolean isError) {
         LayoutInflater inflater = getLayoutInflater();
         View layout = inflater.inflate(R.layout.custom_toast, null);
