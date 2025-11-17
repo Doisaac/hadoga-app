@@ -220,7 +220,6 @@ public class NuevaCitaFragment extends Fragment {
             return;
         }
 
-
         String fechaHora = etFechaHora.getText().toString().trim();
         String motivo = etMotivo.getText().toString().trim();
         String notas = etNotas.getText().toString().trim();
@@ -234,6 +233,12 @@ public class NuevaCitaFragment extends Fragment {
         if (TextUtils.isEmpty(motivo)) {
             etMotivo.setError("El motivo es obligatorio");
             etMotivo.requestFocus();
+            return;
+        }
+
+        // Validar conexión, no permitir crear cita offline
+        if (!com.hadoga.hadoga.utils.NetworkUtils.isNetworkAvailable(requireContext())) {
+            showSnackbarLikeToast("No puedes crear citas sin conexión a internet.", true);
             return;
         }
 
@@ -402,6 +407,12 @@ public class NuevaCitaFragment extends Fragment {
         if (TextUtils.isEmpty(motivo)) {
             etMotivo.setError("El motivo es obligatorio");
             etMotivo.requestFocus();
+            return;
+        }
+
+        // Bloquear edición si no hay internet
+        if (!com.hadoga.hadoga.utils.NetworkUtils.isNetworkAvailable(requireContext())) {
+            showSnackbarLikeToast("No puedes actualizar citas sin conexión a internet.", true);
             return;
         }
 
