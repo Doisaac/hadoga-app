@@ -103,13 +103,15 @@ public class RegisterActivity extends AppCompatActivity {
         }
 
         // Validar si ya existe el email
-        if (db.usuarioDao().login(email, password) != null) {
+        if (db.usuarioDao().existeEmail(email) != null) {
             inputEmail.setError("Este correo ya está registrado");
             return;
         }
 
+        String hashedPassword = com.hadoga.hadoga.utils.PasswordUtils.hashPassword(password);
+
         // Crear objeto usuario
-        Usuario nuevo = new Usuario(nombre, email, password);
+        Usuario nuevo = new Usuario(nombre, email, hashedPassword);
 
         // Verificar conexión
         if (!NetworkUtils.isNetworkAvailable(this)) {
@@ -129,7 +131,7 @@ public class RegisterActivity extends AppCompatActivity {
         Map<String, Object> userMap = new HashMap<>();
         userMap.put("nombreClinica", nombre);
         userMap.put("email", email);
-        userMap.put("contrasena", password);
+        userMap.put("contrasena", hashedPassword);
         userMap.put("estado_sincronizacion", "SINCRONIZADO");
 
         firestore.collection("usuarios").document(email)

@@ -32,4 +32,7 @@ public interface UsuarioDao {
 
     @Query("SELECT * FROM usuarios WHERE estado_sincronizacion = 'PENDIENTE'")
     List<Usuario> getPendientes();
+
+    @Query("SELECT * FROM usuarios WHERE email = :email LIMIT 1")
+    Usuario existeEmail(String email);
 }

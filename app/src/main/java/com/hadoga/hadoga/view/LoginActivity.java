@@ -26,6 +26,7 @@ import com.hadoga.hadoga.model.database.HadogaDatabase;
 import com.hadoga.hadoga.model.entities.Usuario;
 import com.hadoga.hadoga.utils.FirebaseService;
 import com.hadoga.hadoga.utils.NetworkUtils;
+import com.hadoga.hadoga.utils.PasswordUtils;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -113,9 +114,16 @@ public class LoginActivity extends AppCompatActivity {
         // Modo sin conexión
         if (!NetworkUtils.isNetworkAvailable(this)) {
 
-            Usuario user = db.usuarioDao().login(email, password);
+            Usuario user = db.usuarioDao().existeEmail(email);
             if (user == null) {
                 showSnackbarLikeToast("Sin conexión y credenciales no encontradas localmente", true);
+                return;
+            }
+
+            boolean ok = PasswordUtils.checkPassword(password, user.getContrasena());
+
+            if (!ok) {
+                showSnackbarLikeToast("Contraseña incorrecta (offline)", true);
                 return;
             }
 
@@ -134,30 +142,43 @@ public class LoginActivity extends AppCompatActivity {
                 .addOnSuccessListener(document -> {
                     if (document.exists()) {
                         // Si ya está en Firestore, validamos contraseña
-                        String storedPassword = document.getString("contrasena");
-                        if (storedPassword != null && storedPassword.equals(password)) {
-                            showSnackbarLikeToast("Bienvenido", false);
-
-                            // Guardar localmente si aún no está
-                            Usuario existing = db.usuarioDao().login(email, password);
-                            if (existing == null) {
-                                Usuario nuevo = new Usuario(
-                                        document.getString("nombreClinica"),
-                                        email,
-                                        password
-                                );
-                                nuevo.setEstadoSincronizacion("SINCRONIZADO");
-                                new Thread(() -> db.usuarioDao().insert(nuevo)).start();
-                            }
-
-                            handleSuccessfulLogin(email, password);
-                        } else {
-                            showSnackbarLikeToast("Contraseña incorrecta", true);
+                        String storedHash = document.getString("contrasena");
+                        if (storedHash == null) {
+                            showSnackbarLikeToast("Error: cuenta corrupta en Firestore", true);
+                            return;
                         }
 
+                        boolean ok = PasswordUtils.checkPassword(password, storedHash);
+                        if (!ok) {
+                            showSnackbarLikeToast("Contraseña incorrecta", true);
+                            return;
+                        }
+
+                        // Guardar localmente si no existe
+                        Usuario existing = db.usuarioDao().existeEmail(email);
+                        if (existing == null) {
+                            Usuario nuevo = new Usuario(
+                                    document.getString("nombreClinica"),
+                                    email,
+                                    storedHash
+                            );
+                            nuevo.setEstadoSincronizacion("SINCRONIZADO");
+
+                            new Thread(() -> db.usuarioDao().insert(nuevo)).start();
+                        } else {
+                            // Actualizar datos locales si algo cambió
+                            existing.setNombreClinica(document.getString("nombreClinica"));
+                            existing.setContrasena(storedHash);
+                            existing.setEstadoSincronizacion("SINCRONIZADO");
+
+                            new Thread(() -> db.usuarioDao().update(existing)).start();
+                        }
+
+                        showSnackbarLikeToast("Bienvenido", false);
+                        handleSuccessfulLogin(email, password);
                     } else {
                         // No existe en Firestore, pero si existe localmente
-                        Usuario localUser = db.usuarioDao().login(email, password);
+                        Usuario localUser = db.usuarioDao().existeEmail(email);
                         if (localUser != null) {
                             // Subir a Firestore automáticamente
                             Map<String, Object> userMap = new HashMap<>();
