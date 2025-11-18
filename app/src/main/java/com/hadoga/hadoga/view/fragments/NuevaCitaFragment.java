@@ -52,6 +52,8 @@ public class NuevaCitaFragment extends Fragment {
     private List<Paciente> pacientes = new ArrayList<>();
 
     private boolean isEditingMode = false;
+    private boolean cargandoInicial = false;
+    private boolean evitandoListenerSucursal = false;
     private final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US);
 
     @Nullable
@@ -112,14 +114,15 @@ public class NuevaCitaFragment extends Fragment {
                 spSucursal.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
                     @Override
                     public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                        // Reiniciar pacientes cada vez que se cambia sucursal
+
+                        if (evitandoListenerSucursal) return;
+
                         ArrayAdapter<String> adapterPacientes = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item);
                         adapterPacientes.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
                         adapterPacientes.add("Selecciona un paciente");
                         spPaciente.setAdapter(adapterPacientes);
                         pacientes.clear();
 
-                        // Solo cargar si realmente se elige una sucursal valida
                         if (position > 0) {
                             String codigoSucursal = sucursales.get(position - 1).getCodigoSucursal();
                             cargarPacientesPorSucursal(codigoSucursal);
@@ -127,7 +130,7 @@ public class NuevaCitaFragment extends Fragment {
                     }
 
                     @Override
-                    public void onNothingSelected(AdapterView<?> parent) { }
+                    public void onNothingSelected(AdapterView<?> parent) {}
                 });
 
 
@@ -344,10 +347,20 @@ public class NuevaCitaFragment extends Fragment {
                 }
 
                 spSucursal.setAdapter(adSuc);
+
+                evitandoListenerSucursal = true;
+                cargandoInicial = true;
+
                 spSucursal.setSelection(posSuc);
 
-                // Pacientes de esa sucursal
-                cargarPacientesPorSucursal(c.getCodigoSucursalAsignada(), c.getPacienteCorreo());
+                // CARGAR PACIENTES una vez que sucursal ya está seleccionada
+                spSucursal.post(() -> {
+                    cargarPacientesPorSucursal(c.getCodigoSucursalAsignada(), c.getPacienteCorreo());
+
+                    // Reactivar listener
+                    evitandoListenerSucursal = false;
+                    cargandoInicial = false;
+                });
 
                 // Listener
                 spSucursal.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
