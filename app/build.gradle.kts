@@ -57,4 +57,7 @@ dependencies {
 
     // BCrypt
     implementation("org.mindrot:jbcrypt:0.4")
+
+    // Maps
+    implementation("com.google.android.gms:play-services-maps:19.2.0")
 }

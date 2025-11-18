@@ -73,6 +73,8 @@ public class DashboardFragment extends Fragment {
 
         view.findViewById(R.id.cardVerSucursales).setOnClickListener(v -> navigateTo(new ListaSucursalesFragment()));
 
+        view.findViewById(R.id.cardVerMapa).setOnClickListener(v -> navigateTo(new MapaFragment()));
+
         // Botón de sincronizar datos
         view.findViewById(R.id.btnSincronizar).setOnClickListener(v -> {
             FirestoreSyncHelper syncHelper = new FirestoreSyncHelper(requireContext());

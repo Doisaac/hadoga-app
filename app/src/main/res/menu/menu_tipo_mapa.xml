@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/menu_overflow"
+        android:icon="@drawable/ic_maps"
+        android:title="Mapas"
+        app:showAsAction="ifRoom"> <!-- Esto hace que aparezca el menú O.O -->
+
+        <!-- items del menú -->
+        <menu>
+            <item
+                android:id="@+id/mapa_normal"
+                android:title="Normal" />
+            <item
+                android:id="@+id/mapa_satelite"
+                android:title="Satélite" />
+            <item
+                android:id="@+id/mapa_terrain"
+                android:title="Terreno" />
+            <item
+                android:id="@+id/mapa_hybrid"
+                android:title="Híbrido" />
+        </menu>
+    </item>
+</menu>
+
