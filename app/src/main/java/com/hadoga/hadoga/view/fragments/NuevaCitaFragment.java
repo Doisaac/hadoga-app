@@ -51,9 +51,9 @@ public class NuevaCitaFragment extends Fragment {
     private List<Sucursal> sucursales = new ArrayList<>();
     private List<Paciente> pacientes = new ArrayList<>();
 
-    private boolean isEditingMode = false;
-    private boolean cargandoInicial = false;
-    private boolean evitandoListenerSucursal = false;
+    private boolean cargandoPacienteEdicion = false;
+    private boolean bloqueandoEventos = false;
+
     private final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US);
 
     @Nullable
@@ -115,17 +115,18 @@ public class NuevaCitaFragment extends Fragment {
                     @Override
                     public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
 
-                        if (evitandoListenerSucursal) return;
-
-                        ArrayAdapter<String> adapterPacientes = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item);
-                        adapterPacientes.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-                        adapterPacientes.add("Selecciona un paciente");
-                        spPaciente.setAdapter(adapterPacientes);
-                        pacientes.clear();
+                        if (bloqueandoEventos) return;
 
                         if (position > 0) {
-                            String codigoSucursal = sucursales.get(position - 1).getCodigoSucursal();
-                            cargarPacientesPorSucursal(codigoSucursal);
+                            String codigo = sucursales.get(position - 1).getCodigoSucursal();
+
+                            // cada vez que cambia sucursal, reinicia spinner paciente
+                            ArrayAdapter<String> adEmpty = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item);
+                            adEmpty.add("Selecciona un paciente");
+                            spPaciente.setAdapter(adEmpty);
+                            pacientes.clear();
+
+                            cargarPacientesPorSucursal(codigo);
                         }
                     }
 
@@ -147,46 +148,49 @@ public class NuevaCitaFragment extends Fragment {
     }
 
     private void cargarPacientesPorSucursal(String codigoSucursal) {
-        cargarPacientesPorSucursal(codigoSucursal, null);
+        cargarPacientesPorSucursal(codigoSucursal, null, null);
     }
 
-    // Sobrecarga del método: permite cargar pacientes y, opcionalmente, seleccionar uno específico
-    private void cargarPacientesPorSucursal(String codigoSucursal, String pacienteSeleccionadoCorreo) {
+    private void cargarPacientesPorSucursal(String codigoSucursal, String correoSeleccionado) {
+        cargarPacientesPorSucursal(codigoSucursal, correoSeleccionado, null);
+    }
+
+
+    // Sobrecarga del metodo: permite cargar pacientes y, opcionalmente, seleccionar uno específico
+    private void cargarPacientesPorSucursal(String codigoSucursal, String correoSeleccionado, Runnable onFinish) {
         Executors.newSingleThreadExecutor().execute(() -> {
+
             pacientes = db.pacienteDao().obtenerPorSucursal(codigoSucursal);
+
             requireActivity().runOnUiThread(() -> {
-                ArrayAdapter<String> ad = new ArrayAdapter<String>(requireContext(), android.R.layout.simple_spinner_item) {
-                    @Override
-                    public View getView(int position, View convertView, ViewGroup parent) {
-                        View view = super.getView(position, convertView, parent);
-                        ((android.widget.TextView) view).setTextColor(getResources().getColor(android.R.color.white));
-                        return view;
-                    }
 
-                    @Override
-                    public View getDropDownView(int position, View convertView, ViewGroup parent) {
-                        View view = super.getDropDownView(position, convertView, parent);
-                        ((android.widget.TextView) view).setTextColor(getResources().getColor(android.R.color.white));
-                        return view;
-                    }
-                };
-
+                ArrayAdapter<String> ad = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item);
                 ad.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 
                 ad.add("Selecciona un paciente");
+
                 int posSel = 0;
 
                 for (int i = 0; i < pacientes.size(); i++) {
                     Paciente p = pacientes.get(i);
                     ad.add(p.getNombre() + " " + p.getApellido());
-                    if (p.getCorreoElectronico().equals(pacienteSeleccionadoCorreo)) posSel = i + 1;
+
+                    if (correoSeleccionado != null &&
+                            p.getCorreoElectronico().equals(correoSeleccionado)) {
+                        posSel = i + 1;
+                    }
                 }
 
+                bloqueandoEventos = true;
                 spPaciente.setAdapter(ad);
                 spPaciente.setSelection(posSel);
+                bloqueandoEventos = false;
+
+                if (onFinish != null) onFinish.run();
             });
         });
     }
+
     private void abrirPickersFechaHora() {
         final Calendar cal = Calendar.getInstance();
 
@@ -317,8 +321,6 @@ public class NuevaCitaFragment extends Fragment {
         });
     }
     private void cargarDatosCita(View view, Cita c) {
-        isEditingMode = true; // evita recargas innecesarias
-
         // Estado
         ArrayAdapter<String> adEstado = (ArrayAdapter<String>) spEstado.getAdapter();
         if (adEstado != null) {
@@ -348,43 +350,41 @@ public class NuevaCitaFragment extends Fragment {
 
                 spSucursal.setAdapter(adSuc);
 
-                evitandoListenerSucursal = true;
-                cargandoInicial = true;
+                bloqueandoEventos = true;
 
                 spSucursal.setSelection(posSuc);
 
-                // CARGAR PACIENTES una vez que sucursal ya está seleccionada
                 spSucursal.post(() -> {
-                    cargarPacientesPorSucursal(c.getCodigoSucursalAsignada(), c.getPacienteCorreo());
-
-                    // Reactivar listener
-                    evitandoListenerSucursal = false;
-                    cargandoInicial = false;
+                    cargarPacientesPorSucursal(
+                            c.getCodigoSucursalAsignada(),
+                            c.getPacienteCorreo(),
+                            () -> {
+                                bloqueandoEventos = false;
+                            }
+                    );
                 });
 
-                // Listener
-                spSucursal.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-                    @Override
-                    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                        if (isEditingMode) {
-                            // Evitar recarga inmediata al entrar
-                            isEditingMode = false;
-                            return;
+                // Listener final — solo después de establecer la selección correcta
+                spSucursal.post(() -> {
+                    spSucursal.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                        @Override
+                        public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                            if (bloqueandoEventos) return;
+
+                            if (position > 0) {
+                                String codigo = sucursales.get(position - 1).getCodigoSucursal();
+                                cargarPacientesPorSucursal(codigo);
+                            } else {
+                                ArrayAdapter<String> vacio = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item);
+                                vacio.add("Selecciona un paciente");
+                                spPaciente.setAdapter(vacio);
+                                pacientes.clear();
+                            }
                         }
 
-                        if (position > 0) {
-                            String codigoSucursal = sucursales.get(position - 1).getCodigoSucursal();
-                            cargarPacientesPorSucursal(codigoSucursal);
-                        } else {
-                            ArrayAdapter<String> vacio = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item);
-                            vacio.add("Selecciona un paciente");
-                            spPaciente.setAdapter(vacio);
-                            pacientes.clear();
-                        }
-                    }
-
-                    @Override
-                    public void onNothingSelected(AdapterView<?> parent) { }
+                        @Override
+                        public void onNothingSelected(AdapterView<?> parent) {}
+                    });
                 });
 
                 btnCrearCita.setText("Actualizar Cita");
