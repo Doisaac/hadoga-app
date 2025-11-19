@@ -51,7 +51,6 @@ public class NuevaCitaFragment extends Fragment {
     private List<Sucursal> sucursales = new ArrayList<>();
     private List<Paciente> pacientes = new ArrayList<>();
 
-    private boolean cargandoPacienteEdicion = false;
     private boolean bloqueandoEventos = false;
 
     private final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US);
@@ -156,7 +155,7 @@ public class NuevaCitaFragment extends Fragment {
     }
 
 
-    // Sobrecarga del metodo: permite cargar pacientes y, opcionalmente, seleccionar uno específico
+    // Sobrecarga del metodo, permite cargar pacientes y opcionalmente, seleccionar uno específico
     private void cargarPacientesPorSucursal(String codigoSucursal, String correoSeleccionado, Runnable onFinish) {
         Executors.newSingleThreadExecutor().execute(() -> {
 
@@ -364,7 +363,7 @@ public class NuevaCitaFragment extends Fragment {
                     );
                 });
 
-                // Listener final — solo después de establecer la selección correcta
+                // Listener final, después de establecer la selección correcta
                 spSucursal.post(() -> {
                     spSucursal.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
                         @Override
