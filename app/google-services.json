@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "938981597375",
+    "project_id": "dam-proyecto-666",
+    "storage_bucket": "dam-proyecto-666.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:938981597375:android:bfc90a6906c1161615660a",
+        "android_client_info": {
+          "package_name": "com.hadoga.hadoga"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAW6CVJoU9KHs9W5vTLEIYgKksZSit0K1E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

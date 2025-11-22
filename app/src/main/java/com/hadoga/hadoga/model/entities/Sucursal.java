@@ -33,6 +33,9 @@ public class Sucursal implements Serializable {
     @ColumnInfo(name = "correo")
     private String correo;
 
+    @ColumnInfo(name = "estado_sincronizacion")
+    private String estadoSincronizacion;
+
     // Constructores
     public Sucursal() {
     }
@@ -103,5 +106,13 @@ public class Sucursal implements Serializable {
 
     public void setCorreo(String correo) {
         this.correo = correo;
+    }
+
+    public String getEstadoSincronizacion() {
+        return estadoSincronizacion;
+    }
+
+    public void setEstadoSincronizacion(String estadoSincronizacion) {
+        this.estadoSincronizacion = estadoSincronizacion;
     }
 }

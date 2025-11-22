@@ -23,11 +23,17 @@ public class Usuario {
     @ColumnInfo(name = "contrasena")
     private String contrasena;
 
+    @ColumnInfo(name = "estado_sincronizacion")
+    private String estadoSincronizacion;
+
     // Constructor con parámetros
     public Usuario(String nombreClinica, String email, String contrasena) {
         this.nombreClinica = nombreClinica;
         this.email = email;
         this.contrasena = contrasena;
+    }
+
+    public Usuario() {
     }
 
     // Getters y setters del usuario
@@ -61,5 +67,13 @@ public class Usuario {
 
     public void setContrasena(String contrasena) {
         this.contrasena = contrasena;
+    }
+
+    public String getEstadoSincronizacion() {
+        return estadoSincronizacion;
+    }
+
+    public void setEstadoSincronizacion(String estadoSincronizacion) {
+        this.estadoSincronizacion = estadoSincronizacion;
     }
 }

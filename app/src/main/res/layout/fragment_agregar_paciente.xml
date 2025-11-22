@@ -16,7 +16,297 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            android:text="Nuevo Paciente"
-            android:paddingTop="72dp"/>
+            android:paddingTop="72dp"
+            android:text="Nuevo Paciente" />
+
+        <!-- Card: Foto -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:background="@drawable/bg_card_button"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="20dp"
+            android:paddingVertical="16dp">
+
+            <ImageView
+                android:id="@+id/ivFotoPaciente"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:background="@drawable/bg_circle_photo"
+                android:clipToOutline="true"
+                android:scaleType="centerCrop"
+                android:src="@drawable/ic_user_placeholder2" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <android.widget.Button
+                android:id="@+id/btnSeleccionarFoto"
+                style="@style/HadogaMiniButtonBlue"
+                android:layout_width="wrap_content"
+                android:layout_height="33dp"
+                android:background="@drawable/bg_button_blue"
+                android:text="Seleccionar Foto" />
+        </LinearLayout>
+
+        <!-- Spinner: Sucursal -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp">
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:background="@drawable/spinner_azul_background" />
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_gravity="start|center_vertical"
+                android:layout_marginStart="16dp"
+                android:src="@drawable/ic_location"
+                android:tint="#000000" />
+
+            <Spinner
+                android:id="@+id/spSucursal"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_marginStart="40dp"
+                android:layout_marginEnd="36dp"
+                android:gravity="center_vertical"
+                android:popupBackground="@color/colorBackground"
+                android:spinnerMode="dropdown" />
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_gravity="end|center_vertical"
+                android:layout_marginEnd="16dp"
+                android:src="@drawable/ic_arrow_down"
+                android:tint="#000000" />
+        </FrameLayout>
+
+        <!-- Card: Datos personales -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:background="@drawable/bg_card_button"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <TextView
+                style="@style/FieldTitleText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:text="Datos personales"
+                android:textColor="@android:color/black" />
+
+            <EditText
+                android:id="@+id/etNombre"
+                style="@style/HadogaFieldEditText"
+                android:layout_marginBottom="15dp"
+                android:hint="Nombre" />
+
+            <EditText
+                android:id="@+id/etApellido"
+                style="@style/HadogaFieldEditText"
+                android:layout_marginBottom="15dp"
+                android:hint="Apellido" />
+
+            <EditText
+                android:id="@+id/etFechaNacimiento"
+                style="@style/HadogaFieldEditText"
+                android:layout_marginBottom="15dp"
+                android:hint="Fecha de Nacimiento" />
+
+            <TextView
+                style="@style/FieldTitleText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:text="Género"
+                android:textColor="@android:color/black" />
+
+            <RadioGroup
+                android:id="@+id/rgGenero"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <RadioButton
+                    android:id="@+id/rbMasculino"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Masculino" />
+
+                <RadioButton
+                    android:id="@+id/rbFemenino"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="32dp"
+                    android:text="Femenino" />
+            </RadioGroup>
+        </LinearLayout>
+
+        <!-- Card: Contacto -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:background="@drawable/bg_card_button"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <TextView
+                style="@style/FieldTitleText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:text="Contacto"
+                android:textColor="@android:color/black" />
+
+            <EditText
+                android:id="@+id/etCorreo"
+                style="@style/HadogaFieldEditText"
+                android:layout_marginBottom="15dp"
+                android:hint="Correo electrónico" />
+
+            <EditText
+                android:id="@+id/etTelefono"
+                style="@style/HadogaFieldEditText"
+                android:hint="Número de teléfono" />
+        </LinearLayout>
+
+        <!-- Card: Otros datos -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:background="@drawable/bg_card_button"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <TextView
+                style="@style/FieldTitleText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:text="Otros datos"
+                android:textColor="@android:color/black" />
+
+            <EditText
+                android:id="@+id/etDireccion"
+                style="@style/HadogaFieldEditText"
+                android:layout_marginBottom="15dp"
+                android:hint="Dirección" />
+
+            <EditText
+                android:id="@+id/etObservaciones"
+                style="@style/HadogaFieldEditText"
+                android:hint="Observaciones" />
+        </LinearLayout>
+
+        <!-- Card: Condiciones Médicas -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:background="@drawable/bg_card_button"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <TextView
+                style="@style/FieldTitleText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:text="Condiciones Médicas"
+                android:textColor="@android:color/black" />
+
+            <CheckBox
+                android:id="@+id/cbDiabetes"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Diabetes"
+                android:textColor="@android:color/black"
+                android:buttonTint="@color/colorPurple" />
+
+            <CheckBox
+                android:id="@+id/cbAnemia"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Anemia"
+                android:textColor="@android:color/black"
+                android:buttonTint="@color/colorPurple" />
+
+            <CheckBox
+                android:id="@+id/cbGastritis"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Gastritis"
+                android:textColor="@android:color/black"
+                android:buttonTint="@color/colorPurple" />
+
+            <CheckBox
+                android:id="@+id/cbHipertension"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Hipertensión (HTA)"
+                android:textColor="@android:color/black"
+                android:buttonTint="@color/colorPurple" />
+
+            <CheckBox
+                android:id="@+id/cbHemorragias"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Hemorragias"
+                android:textColor="@android:color/black"
+                android:buttonTint="@color/colorPurple" />
+
+            <CheckBox
+                android:id="@+id/cbAsma"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Asma"
+                android:textColor="@android:color/black"
+                android:buttonTint="@color/colorPurple" />
+
+            <CheckBox
+                android:id="@+id/cbTrastornosCardiacos"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Trastornos cardiacos"
+                android:textColor="@android:color/black"
+                android:buttonTint="@color/colorPurple" />
+
+            <CheckBox
+                android:id="@+id/cbConvulsiones"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Convulsiones"
+                android:textColor="@android:color/black"
+                android:buttonTint="@color/colorPurple" />
+
+            <CheckBox
+                android:id="@+id/cbTiroides"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Tiroides"
+                android:textColor="@android:color/black"
+                android:buttonTint="@color/colorPurple" />
+        </LinearLayout>
+
+        <!-- Botón principal -->
+        <Button
+            android:id="@+id/btnCrearPaciente"
+            style="@style/HadogaPrimaryButton"
+            android:text="Crear Paciente" />
     </LinearLayout>
 </ScrollView>

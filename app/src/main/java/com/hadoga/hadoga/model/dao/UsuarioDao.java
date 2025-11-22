@@ -24,6 +24,15 @@ public interface UsuarioDao {
     @Query("SELECT * FROM usuarios WHERE email = :email AND contrasena = :contrasena LIMIT 1")
     Usuario login(String email, String contrasena);
 
+    @Query("SELECT * FROM usuarios WHERE email = :email LIMIT 1")
+    Usuario getUsuarioByEmail(String email);
+
     @Query("SELECT * FROM usuarios")
     List<Usuario> getAllUsuarios();
+
+    @Query("SELECT * FROM usuarios WHERE estado_sincronizacion = 'PENDIENTE'")
+    List<Usuario> getPendientes();
+
+    @Query("SELECT * FROM usuarios WHERE email = :email LIMIT 1")
+    Usuario existeEmail(String email);
 }

@@ -26,4 +26,13 @@ public interface SucursalDao {
 
     @Query("SELECT * FROM sucursal WHERE codigo_sucursal = :codigo LIMIT 1")
     Sucursal getSucursalByCodigo(String codigo);
+
+    @Query("SELECT * FROM sucursal WHERE estado_sincronizacion = 'PENDIENTE'")
+    List<Sucursal> getPendientes();
+
+    @Query("SELECT * FROM sucursal WHERE estado_sincronizacion = :estado")
+    List<Sucursal> getByEstado(String estado);
+
+    @Query("SELECT * FROM sucursal WHERE estado_sincronizacion = 'ELIMINADO_PENDIENTE'")
+    List<Sucursal> getEliminadasPendientes();
 }

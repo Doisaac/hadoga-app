@@ -1,25 +1,36 @@
 package com.hadoga.hadoga.view.fragments;
 
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Patterns;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.hadoga.hadoga.R;
 import com.hadoga.hadoga.model.database.HadogaDatabase;
 import com.hadoga.hadoga.model.entities.Sucursal;
+import com.hadoga.hadoga.utils.FirebaseService;
+import com.hadoga.hadoga.utils.NetworkUtils;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.Executors;
 
 public class AgregarSucursalFragment extends Fragment {
@@ -52,6 +63,7 @@ public class AgregarSucursalFragment extends Fragment {
         etDireccion.setText(s.getDireccionCompleta());
         etTelefono.setText(s.getTelefono());
         etCorreo.setText(s.getCorreo());
+        etCodigoSucursal.setEnabled(false);
 
         ArrayAdapter<CharSequence> adapter = (ArrayAdapter<CharSequence>) spDepartamento.getAdapter();
         if (adapter != null) {
@@ -88,7 +100,7 @@ public class AgregarSucursalFragment extends Fragment {
         }
 
         if (TextUtils.isEmpty(depto)) {
-            Toast.makeText(requireContext(), "Selecciona un departamento", Toast.LENGTH_SHORT).show();
+            showSnackbarLikeToast("Selecciona un departamento.", true);
             return;
         }
 
@@ -122,29 +134,58 @@ public class AgregarSucursalFragment extends Fragment {
             return;
         }
 
-        // Actualización en la base de datos
-        Executors.newSingleThreadExecutor().execute(() -> {
-            try {
-                Sucursal actualizada = new Sucursal(nombre, codigo, depto, direccion, telefono, correo);
-                actualizada.setId(idSucursal);
+        // Crear objeto actualizado
+        Sucursal actualizada = new Sucursal(nombre, codigo, depto, direccion, telefono, correo);
+        actualizada.setId(idSucursal);
 
+        // Verificar conexión
+        if (!NetworkUtils.isNetworkAvailable(requireContext())) {
+            // Sin conexión lo va a guardar localmente como pendiente
+            actualizada.setEstadoSincronizacion("PENDIENTE");
+
+            Executors.newSingleThreadExecutor().execute(() -> {
                 db.sucursalDao().update(actualizada);
-
                 requireActivity().runOnUiThread(() -> {
-                    Toast.makeText(requireContext(), "Sucursal actualizada exitosamente", Toast.LENGTH_SHORT).show();
+                    showSnackbarLikeToast("Sin conexión. Sucursal actualizada localmente.", null);
                     requireActivity().getSupportFragmentManager().popBackStack();
                 });
-            } catch (Exception e) {
-                requireActivity().runOnUiThread(() -> {
-                    if (e.getMessage() != null && e.getMessage().contains("UNIQUE constraint failed")) {
-                        etCodigoSucursal.setError("El código ya está registrado");
-                        etCodigoSucursal.requestFocus();
-                    } else {
-                        Toast.makeText(requireContext(), "Error al actualizar la sucursal", Toast.LENGTH_SHORT).show();
-                    }
+            });
+            return;
+        }
+
+        // Con conexión actualiza ambos
+        FirebaseFirestore firestore = FirebaseService.getInstance();
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("nombreSucursal", nombre);
+        data.put("codigoSucursal", codigo);
+        data.put("departamento", depto);
+        data.put("direccionCompleta", direccion);
+        data.put("telefono", telefono);
+        data.put("correo", correo);
+        data.put("estado_sincronizacion", "SINCRONIZADO");
+
+        firestore.collection("sucursales")
+                .document(codigo)
+                .set(data)
+                .addOnSuccessListener(aVoid -> {
+                    actualizada.setEstadoSincronizacion("SINCRONIZADO");
+                    Executors.newSingleThreadExecutor().execute(() -> db.sucursalDao().update(actualizada));
+
+                    requireActivity().runOnUiThread(() -> {
+                        showSnackbarLikeToast("Sucursal actualizada y sincronizada correctamente.", false);
+                        requireActivity().getSupportFragmentManager().popBackStack();
+                    });
+                })
+                .addOnFailureListener(e -> {
+                    actualizada.setEstadoSincronizacion("PENDIENTE");
+                    Executors.newSingleThreadExecutor().execute(() -> db.sucursalDao().update(actualizada));
+
+                    requireActivity().runOnUiThread(() -> {
+                        showSnackbarLikeToast("Error al sincronizar. Sucursal guardada localmente.", null);
+                        requireActivity().getSupportFragmentManager().popBackStack();
+                    });
                 });
-            }
-        });
     }
 
     private void initUI(View view) {
@@ -221,27 +262,94 @@ public class AgregarSucursalFragment extends Fragment {
             etCorreo.requestFocus();
             return;
         }
-
-        // Insertar a base de datos
+        // Crear objeto sucursal
         Sucursal sucursal = new Sucursal(nombre, codigo, depto, direccion, telefono, correo);
 
-        Executors.newSingleThreadExecutor().execute(() -> {
-            try {
+        // Sin conexión
+        if (!NetworkUtils.isNetworkAvailable(requireContext())) {
+            // Sin conexión → guardar localmente con estado pendiente
+            sucursal.setEstadoSincronizacion("PENDIENTE");
+            Executors.newSingleThreadExecutor().execute(() -> {
                 db.sucursalDao().insert(sucursal);
-                requireActivity().runOnUiThread(() -> Toast.makeText(requireContext(), "Sucursal guardada exitosamente", Toast.LENGTH_SHORT).show());
-                requireActivity().getSupportFragmentManager().popBackStack();
-            } catch (Exception e) {
                 requireActivity().runOnUiThread(() -> {
-                    if (e.getMessage() != null && e.getMessage().contains("UNIQUE constraint failed")) {
-                        etCodigoSucursal.setError("El código ya está registrado");
-                        etCodigoSucursal.requestFocus();
-                    } else {
-                        Toast.makeText(requireContext(), "Error al guardar la sucursal", Toast.LENGTH_SHORT).show();
-                    }
+                    showSnackbarLikeToast("Sin conexión. Sucursal guardada localmente.", null);
+                    requireActivity().getSupportFragmentManager().popBackStack();
                 });
-            }
-        });
+            });
+            return;
+        }
 
+        // Con conexión → crear también en Firestore
+        FirebaseFirestore firestore = FirebaseService.getInstance();
 
+        Map<String, Object> data = new HashMap<>();
+        data.put("nombreSucursal", nombre);
+        data.put("codigoSucursal", codigo);
+        data.put("departamento", depto);
+        data.put("direccionCompleta", direccion);
+        data.put("telefono", telefono);
+        data.put("correo", correo);
+        data.put("estado_sincronizacion", "SINCRONIZADO");
+
+        firestore.collection("sucursales")
+                .document(codigo)
+                .set(data)
+                .addOnSuccessListener(aVoid -> {
+                    sucursal.setEstadoSincronizacion("SINCRONIZADO");
+                    Executors.newSingleThreadExecutor().execute(() -> db.sucursalDao().insert(sucursal));
+
+                    requireActivity().runOnUiThread(() -> {
+                        showSnackbarLikeToast("Sucursal guardada y sincronizada correctamente.", false);
+                        requireActivity().getSupportFragmentManager().popBackStack();
+                    });
+                })
+                .addOnFailureListener(e -> {
+                    sucursal.setEstadoSincronizacion("PENDIENTE");
+                    Executors.newSingleThreadExecutor().execute(() -> db.sucursalDao().insert(sucursal));
+
+                    requireActivity().runOnUiThread(() -> {
+                        showSnackbarLikeToast("Error al sincronizar. Guardada localmente.", null);
+                        requireActivity().getSupportFragmentManager().popBackStack();
+                    });
+                });
     }
+
+    private void showSnackbarLikeToast(String message, Boolean isError) {
+        LayoutInflater inflater = getLayoutInflater();
+        View layout = inflater.inflate(R.layout.custom_toast, null);
+
+        LinearLayout container = layout.findViewById(R.id.toast_container);
+        TextView text = layout.findViewById(R.id.toast_message);
+        ImageView icon = layout.findViewById(R.id.toast_icon);
+
+        text.setText(message);
+
+        int color;
+        int iconRes;
+
+        if (isError == null) {
+            color = ContextCompat.getColor(requireContext(), R.color.colorWarning);
+            iconRes = R.drawable.ic_check_circle;
+        } else if (isError) {
+            color = ContextCompat.getColor(requireContext(), android.R.color.holo_red_dark);
+            iconRes = R.drawable.ic_error;
+        } else {
+            color = ContextCompat.getColor(requireContext(), R.color.colorBlue);
+            iconRes = R.drawable.ic_check_circle;
+        }
+
+        icon.setImageResource(iconRes);
+
+        GradientDrawable background = new GradientDrawable();
+        background.setCornerRadius(24f);
+        background.setColor(color);
+        container.setBackground(background);
+
+        Toast toast = new Toast(requireContext().getApplicationContext());
+        toast.setDuration(Toast.LENGTH_LONG);
+        toast.setView(layout);
+        toast.setGravity(Gravity.BOTTOM, 0, 120);
+        toast.show();
+    }
+
 }

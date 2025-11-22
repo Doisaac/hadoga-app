@@ -16,7 +16,195 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            android:text="Nueva Cita"
-            android:paddingTop="72dp"/>
+            android:paddingTop="72dp"
+            android:text="Nueva Cita" />
+
+        <!-- CARD: Datos -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:background="@drawable/bg_card_button"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <TextView
+                style="@style/FieldTitleText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:text="Datos"
+                android:textColor="@android:color/black" />
+
+            <!-- Spinner Sucursal -->
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="15dp">
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:background="@drawable/spinner_azul_background" />
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_gravity="start|center_vertical"
+                    android:layout_marginStart="16dp"
+                    android:src="@drawable/ic_location"
+                    android:tint="#000000" />
+
+                <Spinner
+                    android:id="@+id/spSucursal"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="40dp"
+                    android:layout_marginEnd="36dp"
+                    android:gravity="center_vertical"
+                    android:popupBackground="@color/colorBackground"
+                    android:spinnerMode="dropdown" />
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_gravity="end|center_vertical"
+                    android:layout_marginEnd="16dp"
+                    android:src="@drawable/ic_arrow_down"
+                    android:tint="#000000" />
+            </FrameLayout>
+
+            <!-- Spinner Paciente -->
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:background="@drawable/spinner_rosado_backgrouond" />
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_gravity="start|center_vertical"
+                    android:layout_marginStart="16dp"
+                    android:src="@drawable/ic_user"
+                    android:tint="#000000" />
+
+                <Spinner
+                    android:id="@+id/spPaciente"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="40dp"
+                    android:layout_marginEnd="36dp"
+                    android:gravity="center_vertical"
+                    android:popupBackground="@color/colorBackground"
+                    android:spinnerMode="dropdown" />
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_gravity="end|center_vertical"
+                    android:layout_marginEnd="16dp"
+                    android:src="@drawable/ic_arrow_down"
+                    android:tint="#000000" />
+            </FrameLayout>
+        </LinearLayout>
+
+        <!-- CARD: Fecha y hora -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:background="@drawable/bg_card_button"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <TextView
+                style="@style/FieldTitleText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:text="Fecha y hora de la cita"
+                android:textColor="@android:color/black" />
+
+            <EditText
+                android:id="@+id/etFechaHora"
+                style="@style/HadogaFieldEditText"
+                android:layout_marginBottom="15dp"
+                android:hint="Fecha y hora" />
+
+            <EditText
+                android:id="@+id/etMotivo"
+                style="@style/HadogaFieldEditText"
+                android:layout_marginBottom="15dp"
+                android:hint="Motivo" />
+
+            <EditText
+                android:id="@+id/etNotas"
+                style="@style/HadogaFieldEditText"
+                android:hint="Notas" />
+        </LinearLayout>
+
+        <!-- CARD: Estado -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:background="@drawable/bg_card_button"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <TextView
+                style="@style/FieldTitleText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:text="Estado"
+                android:textColor="@android:color/black" />
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:background="@drawable/spinner_azul_background" />
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_gravity="start|center_vertical"
+                    android:layout_marginStart="16dp"
+                    android:src="@drawable/ic_edit"
+                    android:tint="#000000" />
+
+                <Spinner
+                    android:id="@+id/spEstado"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="40dp"
+                    android:layout_marginEnd="36dp"
+                    android:gravity="center_vertical"
+                    android:popupBackground="@color/colorBackground"
+                    android:spinnerMode="dropdown" />
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_gravity="end|center_vertical"
+                    android:layout_marginEnd="16dp"
+                    android:src="@drawable/ic_arrow_down"
+                    android:tint="#000000" />
+            </FrameLayout>
+        </LinearLayout>
+
+        <!-- Botón principal -->
+        <Button
+            android:id="@+id/btnCrearCita"
+            style="@style/HadogaPrimaryButton"
+            android:text="Crear Cita" />
     </LinearLayout>
 </ScrollView>

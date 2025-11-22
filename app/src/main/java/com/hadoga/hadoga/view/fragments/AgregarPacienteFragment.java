@@ -1,21 +1,521 @@
 package com.hadoga.hadoga.view.fragments;
 
+import android.app.Activity;
+import android.content.Intent;
+import android.graphics.drawable.GradientDrawable;
+import android.net.Uri;
 import android.os.Bundle;
+import android.text.TextUtils;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
+import android.widget.Spinner;
+import android.widget.TextView;
+import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.hadoga.hadoga.R;
+import com.hadoga.hadoga.model.database.HadogaDatabase;
+import com.hadoga.hadoga.model.entities.Paciente;
+import com.hadoga.hadoga.model.entities.Sucursal;
+import com.hadoga.hadoga.utils.FirebaseService;
+import com.hadoga.hadoga.utils.NetworkUtils;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Executors;
 
 public class AgregarPacienteFragment extends Fragment {
+    private HadogaDatabase db;
+    private ImageView ivFotoPaciente;
+    private Button btnSeleccionarFoto, btnCrearPaciente;
+    private EditText etNombre, etApellido, etFechaNacimiento, etCorreo, etTelefono, etDireccion, etObservaciones;
+    private RadioGroup rgGenero;
+    private Spinner spSucursal;
+    private CheckBox cbDiabetes, cbAnemia, cbGastritis, cbHipertension, cbHemorragias, cbAsma, cbTrastornosCardiacos, cbConvulsiones, cbTiroides;
+
+    private Uri fotoSeleccionadaUri;
+
     @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
-                             @Nullable Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_agregar_paciente, container, false);
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        db = HadogaDatabase.getInstance(requireContext());
+        View view = inflater.inflate(R.layout.fragment_agregar_paciente, container, false);
+
+        initUI(view);
+        initListeners(view);
+
+        // Si viene en modo edición
+        if (getArguments() != null && getArguments().containsKey("pacienteData")) {
+            Paciente paciente = (Paciente) getArguments().getSerializable("pacienteData");
+            cargarDatosPaciente(view, paciente);
+        }
+
+        return view;
+    }
+
+    private void initUI(View view) {
+        ivFotoPaciente = view.findViewById(R.id.ivFotoPaciente);
+        btnSeleccionarFoto = view.findViewById(R.id.btnSeleccionarFoto);
+        btnCrearPaciente = view.findViewById(R.id.btnCrearPaciente);
+
+        etNombre = view.findViewById(R.id.etNombre);
+        etApellido = view.findViewById(R.id.etApellido);
+        etFechaNacimiento = view.findViewById(R.id.etFechaNacimiento);
+        etCorreo = view.findViewById(R.id.etCorreo);
+        etTelefono = view.findViewById(R.id.etTelefono);
+        etDireccion = view.findViewById(R.id.etDireccion);
+        etObservaciones = view.findViewById(R.id.etObservaciones);
+        rgGenero = view.findViewById(R.id.rgGenero);
+        spSucursal = view.findViewById(R.id.spSucursal);
+
+        cbDiabetes = view.findViewById(R.id.cbDiabetes);
+        cbAnemia = view.findViewById(R.id.cbAnemia);
+        cbGastritis = view.findViewById(R.id.cbGastritis);
+        cbHipertension = view.findViewById(R.id.cbHipertension);
+        cbHemorragias = view.findViewById(R.id.cbHemorragias);
+        cbAsma = view.findViewById(R.id.cbAsma);
+        cbTrastornosCardiacos = view.findViewById(R.id.cbTrastornosCardiacos);
+        cbConvulsiones = view.findViewById(R.id.cbConvulsiones);
+        cbTiroides = view.findViewById(R.id.cbTiroides);
+
+        // Cargar sucursales desde la BD
+        Executors.newSingleThreadExecutor().execute(() -> {
+            List<Sucursal> listaSucursales = db.sucursalDao().getAllSucursales();
+            requireActivity().runOnUiThread(() -> {
+                ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item);
+                adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+
+                // Agregamos el ítem por defecto
+                adapter.add("Selecciona una sucursal");
+
+                // Si hay sucursales en la BD, las agregamos después
+                for (Sucursal s : listaSucursales) {
+                    adapter.add(s.getNombreSucursal());
+                }
+
+                spSucursal.setAdapter(adapter);
+
+                // Siempre mostrar el ítem "Selecciona tu sucursal" como opción inicial
+                spSucursal.setSelection(0);
+                spSucursal.setEnabled(true);
+
+            });
+        });
+
+    }
+
+    private void initListeners(View view) {
+        btnSeleccionarFoto.setOnClickListener(v -> abrirGaleria());
+        btnCrearPaciente.setOnClickListener(v -> guardarPaciente());
+    }
+
+    private void abrirGaleria() {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("image/*");
+        intent.addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        seleccionarImagenLauncher.launch(intent);
+    }
+
+    private final ActivityResultLauncher<Intent> seleccionarImagenLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+        if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
+            Uri uri = result.getData().getData();
+            if (uri != null) {
+                requireContext().getContentResolver().takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+                try (InputStream inputStream = requireContext().getContentResolver().openInputStream(uri)) {
+                    File file = new File(requireContext().getFilesDir(), "paciente_" + System.currentTimeMillis() + ".jpg");
+                    try (OutputStream outputStream = new FileOutputStream(file)) {
+                        byte[] buffer = new byte[1024];
+                        int length;
+                        while ((length = inputStream.read(buffer)) > 0) {
+                            outputStream.write(buffer, 0, length);
+                        }
+                    }
+
+                    fotoSeleccionadaUri = Uri.fromFile(file);
+                    ivFotoPaciente.setImageURI(fotoSeleccionadaUri);
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    showSnackbarLikeToast("Error al cargar la imagen.", true);
+                }
+            }
+        }
+    });
+
+    private void guardarPaciente() {
+        String nombre = etNombre.getText().toString().trim();
+        String apellido = etApellido.getText().toString().trim();
+        String fechaNac = etFechaNacimiento.getText().toString().trim();
+        String correo = etCorreo.getText().toString().trim();
+        String telefono = etTelefono.getText().toString().trim();
+        String direccion = etDireccion.getText().toString().trim();
+        String observaciones = etObservaciones.getText().toString().trim();
+        int generoId = rgGenero.getCheckedRadioButtonId();
+        String sucursalNombre = spSucursal.getSelectedItem() != null ? spSucursal.getSelectedItem().toString() : "";
+
+        if (TextUtils.isEmpty(nombre)) {
+            etNombre.setError("El nombre es obligatorio");
+            etNombre.requestFocus();
+            return;
+        }
+        if (TextUtils.isEmpty(apellido)) {
+            etApellido.setError("El apellido es obligatorio");
+            etApellido.requestFocus();
+            return;
+        }
+        if (TextUtils.isEmpty(fechaNac)) {
+            etFechaNacimiento.setError("Fecha de nacimiento obligatoria");
+            etFechaNacimiento.requestFocus();
+            return;
+        }
+
+        if (TextUtils.isEmpty(correo)) {
+            etCorreo.setError("El correo es obligatorio");
+            etCorreo.requestFocus();
+            return;
+        }
+
+        if (generoId == -1) {
+            showSnackbarLikeToast("Selecciona un género.", true);
+            return;
+        }
+        if (TextUtils.isEmpty(sucursalNombre) || sucursalNombre.equals("Selecciona una sucursal")) {
+            showSnackbarLikeToast("Selecciona una sucursal.", true);
+            return;
+        }
+
+        RadioButton rbGenero = requireView().findViewById(generoId);
+        String genero = rbGenero.getText().toString().toLowerCase();
+
+        Executors.newSingleThreadExecutor().execute(() -> {
+            List<Sucursal> listaSucursales = db.sucursalDao().getAllSucursales();
+            String codigoSucursalSeleccionada = null;
+            for (Sucursal s : listaSucursales) {
+                if (s.getNombreSucursal().equals(sucursalNombre)) {
+                    codigoSucursalSeleccionada = s.getCodigoSucursal();
+                    break;
+                }
+            }
+
+            if (codigoSucursalSeleccionada == null) {
+                requireActivity().runOnUiThread(() ->
+                        showSnackbarLikeToast("Sucursal no encontrada.", true)
+                );
+                return;
+            }
+
+            Paciente existente = db.pacienteDao().obtenerPorCorreo(correo);
+            if (existente != null) {
+                requireActivity().runOnUiThread(() ->
+                        showSnackbarLikeToast("El correo ya está registrado en otro paciente.", true)
+                );
+                return;
+            }
+
+            Paciente nuevo = new Paciente(
+                    nombre, apellido, fechaNac, genero, correo, telefono,
+                    direccion, observaciones, cbDiabetes.isChecked(), cbAnemia.isChecked(),
+                    cbGastritis.isChecked(), cbHipertension.isChecked(), cbHemorragias.isChecked(),
+                    cbAsma.isChecked(), cbTrastornosCardiacos.isChecked(), cbConvulsiones.isChecked(),
+                    cbTiroides.isChecked(), codigoSucursalSeleccionada,
+                    fotoSeleccionadaUri != null ? fotoSeleccionadaUri.toString() : null
+            );
+
+            // Verificar conexión
+            if (!NetworkUtils.isNetworkAvailable(requireContext())) {
+                nuevo.setEstadoSincronizacion("PENDIENTE");
+                db.pacienteDao().insertar(nuevo);
+                requireActivity().runOnUiThread(() -> {
+                    showSnackbarLikeToast("Sin conexión. El paciente se guardó localmente.", null);
+                    requireActivity().getSupportFragmentManager().popBackStack();
+                });
+                return;
+            }
+
+            // Con conexión
+            FirebaseFirestore firestore = FirebaseService.getInstance();
+
+            Map<String, Object> data = new HashMap<>();
+            data.put("nombre", nombre);
+            data.put("apellido", apellido);
+            data.put("fechaNacimiento", fechaNac);
+            data.put("sexo", genero);
+            data.put("correoElectronico", correo);
+            data.put("numeroTelefono", telefono);
+            data.put("direccion", direccion);
+            data.put("observaciones", observaciones);
+            data.put("diabetes", cbDiabetes.isChecked());
+            data.put("anemia", cbAnemia.isChecked());
+            data.put("gastritis", cbGastritis.isChecked());
+            data.put("hipertensionHta", cbHipertension.isChecked());
+            data.put("hemorragias", cbHemorragias.isChecked());
+            data.put("asma", cbAsma.isChecked());
+            data.put("trastornosCardiacos", cbTrastornosCardiacos.isChecked());
+            data.put("convulsiones", cbConvulsiones.isChecked());
+            data.put("tiroides", cbTiroides.isChecked());
+            data.put("codigoSucursalAsignada", codigoSucursalSeleccionada);
+            data.put("fotoUri", fotoSeleccionadaUri != null ? fotoSeleccionadaUri.toString() : null);
+            data.put("estado_sincronizacion", "SINCRONIZADO");
+
+            firestore.collection("pacientes")
+                    // correo como id
+                    .document(correo)
+                    .set(data)
+                    .addOnSuccessListener(aVoid -> {
+                        nuevo.setEstadoSincronizacion("SINCRONIZADO");
+                        db.pacienteDao().insertar(nuevo);
+                        requireActivity().runOnUiThread(() -> {
+                            showSnackbarLikeToast("Paciente guardado y sincronizado correctamente.", false);
+                            requireActivity().getSupportFragmentManager().popBackStack();
+                        });
+                    })
+                    .addOnFailureListener(e -> {
+                        nuevo.setEstadoSincronizacion("PENDIENTE");
+                        db.pacienteDao().insertar(nuevo);
+                        requireActivity().runOnUiThread(() -> {
+                            showSnackbarLikeToast("Error al sincronizar. Se guardó localmente.", null);
+                            requireActivity().getSupportFragmentManager().popBackStack();
+                        });
+                    });
+        });
+    }
+
+    private void cargarDatosPaciente(View view, Paciente p) {
+        etNombre.setText(p.getNombre());
+        etApellido.setText(p.getApellido());
+        etFechaNacimiento.setText(p.getFechaNacimiento());
+        etCorreo.setText(p.getCorreoElectronico());
+        etTelefono.setText(p.getNumeroTelefono());
+        etDireccion.setText(p.getDireccion());
+        etObservaciones.setText(p.getObservaciones());
+        etCorreo.setEnabled(false);
+
+        // Género
+        if (p.getSexo().equalsIgnoreCase("masculino")) rgGenero.check(R.id.rbMasculino);
+        else if (p.getSexo().equalsIgnoreCase("femenino")) rgGenero.check(R.id.rbFemenino);
+
+        // Imagen
+        if (p.getFotoUri() != null && !p.getFotoUri().isEmpty()) {
+            fotoSeleccionadaUri = Uri.parse(p.getFotoUri());
+            ivFotoPaciente.setImageURI(fotoSeleccionadaUri);
+        } else {
+            ivFotoPaciente.setImageResource(R.drawable.ic_user_placeholder2);
+        }
+
+        // Checkboxes
+        cbDiabetes.setChecked(p.isDiabetes());
+        cbAnemia.setChecked(p.isAnemia());
+        cbGastritis.setChecked(p.isGastritis());
+        cbHipertension.setChecked(p.isHipertensionHta());
+        cbHemorragias.setChecked(p.isHemorragias());
+        cbAsma.setChecked(p.isAsma());
+        cbTrastornosCardiacos.setChecked(p.isTrastornosCardiacos());
+        cbConvulsiones.setChecked(p.isConvulsiones());
+        cbTiroides.setChecked(p.isTiroides());
+
+        // Spinner de sucursal
+        Executors.newSingleThreadExecutor().execute(() -> {
+            List<Sucursal> lista = db.sucursalDao().getAllSucursales();
+            requireActivity().runOnUiThread(() -> {
+                ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item);
+                adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+
+                // Agregar item por defecto
+                adapter.add("Selecciona una sucursal");
+
+                int posSel = 0; // por defecto en "Selecciona una sucursal"
+                for (int i = 0; i < lista.size(); i++) {
+                    Sucursal s = lista.get(i);
+                    adapter.add(s.getNombreSucursal());
+                    if (s.getCodigoSucursal().equals(p.getCodigoSucursalAsignada())) posSel = i + 1;
+                }
+
+                spSucursal.setAdapter(adapter);
+                spSucursal.setSelection(posSel);
+                spSucursal.setEnabled(!lista.isEmpty());
+            });
+        });
+
+        // Cambiar texto del botón
+        btnCrearPaciente.setText("Actualizar Paciente");
+        btnCrearPaciente.setOnClickListener(v -> actualizarPaciente(p.getId()));
+    }
+
+    private void actualizarPaciente(int idPaciente) {
+        String nombre = etNombre.getText().toString().trim();
+        String apellido = etApellido.getText().toString().trim();
+        String fechaNac = etFechaNacimiento.getText().toString().trim();
+        String correo = etCorreo.getText().toString().trim();
+        String telefono = etTelefono.getText().toString().trim();
+        String direccion = etDireccion.getText().toString().trim();
+        String observaciones = etObservaciones.getText().toString().trim();
+        int generoId = rgGenero.getCheckedRadioButtonId();
+        String sucursalNombre = spSucursal.getSelectedItem() != null ? spSucursal.getSelectedItem().toString() : "";
+
+        if (TextUtils.isEmpty(nombre) || TextUtils.isEmpty(apellido) || generoId == -1) {
+            showSnackbarLikeToast("Completa los campos obligatorios.", true);
+            return;
+        }
+
+        RadioButton rbGenero = requireView().findViewById(generoId);
+        String genero = rbGenero.getText().toString().toLowerCase();
+
+        Executors.newSingleThreadExecutor().execute(() -> {
+            List<Sucursal> listaSucursales = db.sucursalDao().getAllSucursales();
+            String codigoSucursalSeleccionada = null;
+            for (Sucursal s : listaSucursales) {
+                if (s.getNombreSucursal().equals(sucursalNombre)) {
+                    codigoSucursalSeleccionada = s.getCodigoSucursal();
+                    break;
+                }
+            }
+
+            if (codigoSucursalSeleccionada == null) {
+                requireActivity().runOnUiThread(() ->
+                        showSnackbarLikeToast("Sucursal no encontrada.", true)
+                );
+                return;
+            }
+
+            if (TextUtils.isEmpty(correo)) {
+                etCorreo.setError("El correo es obligatorio");
+                etCorreo.requestFocus();
+                return;
+            }
+
+            Paciente existente = db.pacienteDao().obtenerPorCorreo(correo);
+            if (existente != null && existente.getId() != idPaciente) {
+                requireActivity().runOnUiThread(() ->
+                        showSnackbarLikeToast("El correo ingresado ya pertenece a otro paciente.", true)
+                );
+                return;
+            }
+
+            Paciente actualizado = new Paciente(
+                    nombre, apellido, fechaNac, genero, correo, telefono,
+                    direccion, observaciones, cbDiabetes.isChecked(), cbAnemia.isChecked(),
+                    cbGastritis.isChecked(), cbHipertension.isChecked(), cbHemorragias.isChecked(),
+                    cbAsma.isChecked(), cbTrastornosCardiacos.isChecked(), cbConvulsiones.isChecked(),
+                    cbTiroides.isChecked(), codigoSucursalSeleccionada,
+                    fotoSeleccionadaUri != null ? fotoSeleccionadaUri.toString() : null
+            );
+            actualizado.setId(idPaciente);
+
+            if (!NetworkUtils.isNetworkAvailable(requireContext())) {
+                actualizado.setEstadoSincronizacion("PENDIENTE");
+                db.pacienteDao().actualizar(actualizado);
+                requireActivity().runOnUiThread(() -> {
+                    showSnackbarLikeToast("Sin conexión. Paciente actualizado localmente.", null);
+                    requireActivity().getSupportFragmentManager().popBackStack();
+                });
+                return;
+            }
+
+            FirebaseFirestore firestore = FirebaseService.getInstance();
+            Map<String, Object> data = new HashMap<>();
+            data.put("nombre", nombre);
+            data.put("apellido", apellido);
+            data.put("fechaNacimiento", fechaNac);
+            data.put("sexo", genero);
+            data.put("correoElectronico", correo);
+            data.put("numeroTelefono", telefono);
+            data.put("direccion", direccion);
+            data.put("observaciones", observaciones);
+            data.put("diabetes", cbDiabetes.isChecked());
+            data.put("anemia", cbAnemia.isChecked());
+            data.put("gastritis", cbGastritis.isChecked());
+            data.put("hipertensionHta", cbHipertension.isChecked());
+            data.put("hemorragias", cbHemorragias.isChecked());
+            data.put("asma", cbAsma.isChecked());
+            data.put("trastornosCardiacos", cbTrastornosCardiacos.isChecked());
+            data.put("convulsiones", cbConvulsiones.isChecked());
+            data.put("tiroides", cbTiroides.isChecked());
+            data.put("codigoSucursalAsignada", codigoSucursalSeleccionada);
+            data.put("fotoUri", fotoSeleccionadaUri != null ? fotoSeleccionadaUri.toString() : null);
+            data.put("estado_sincronizacion", "SINCRONIZADO");
+
+            firestore.collection("pacientes")
+                    .document(correo)
+                    .set(data)
+                    .addOnSuccessListener(aVoid -> {
+                        actualizado.setEstadoSincronizacion("SINCRONIZADO");
+                        db.pacienteDao().actualizar(actualizado);
+                        requireActivity().runOnUiThread(() -> {
+                            showSnackbarLikeToast("Paciente actualizado y sincronizado correctamente.", false);
+                            requireActivity().getSupportFragmentManager().popBackStack();
+                        });
+                    })
+                    .addOnFailureListener(e -> {
+                        actualizado.setEstadoSincronizacion("PENDIENTE");
+                        db.pacienteDao().actualizar(actualizado);
+                        requireActivity().runOnUiThread(() -> {
+                            showSnackbarLikeToast("Error al sincronizar. Actualizado localmente.", null);
+                            requireActivity().getSupportFragmentManager().popBackStack();
+                        });
+                    });
+        });
+    }
+
+    private void showSnackbarLikeToast(String message, Boolean isError) {
+        LayoutInflater inflater = getLayoutInflater();
+        View layout = inflater.inflate(R.layout.custom_toast, null);
+
+        LinearLayout container = layout.findViewById(R.id.toast_container);
+        TextView text = layout.findViewById(R.id.toast_message);
+        ImageView icon = layout.findViewById(R.id.toast_icon);
+
+        text.setText(message);
+
+        int color;
+        int iconRes;
+
+        if (isError == null) {
+            color = ContextCompat.getColor(requireContext(), R.color.colorWarning);
+            iconRes = R.drawable.ic_check_circle;
+        } else if (isError) {
+            color = ContextCompat.getColor(requireContext(), android.R.color.holo_red_dark);
+            iconRes = R.drawable.ic_error;
+        } else {
+            color = ContextCompat.getColor(requireContext(), R.color.colorBlue);
+            iconRes = R.drawable.ic_check_circle;
+        }
+
+        icon.setImageResource(iconRes);
+
+        GradientDrawable background = new GradientDrawable();
+        background.setCornerRadius(24f);
+        background.setColor(color);
+        container.setBackground(background);
+
+        Toast toast = new Toast(requireContext().getApplicationContext());
+        toast.setDuration(Toast.LENGTH_LONG);
+        toast.setView(layout);
+        toast.setGravity(Gravity.BOTTOM, 0, 120);
+        toast.show();
     }
 }
